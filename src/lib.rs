@@ -51,6 +51,13 @@ mod tests {
     }
     
     #[test]
+    fn font_test() {
+        let mut mem = mem::Mem::new();
+        mem.load_font(0);
+        assert_eq!(mem.get(2..=4), Some(&[0x90, 0x90, 0xF0][..]));
+    }
+    
+    #[test]
     fn display_test() {
        let mut d = display::Screen::new();
        d.switch(2, 2);
