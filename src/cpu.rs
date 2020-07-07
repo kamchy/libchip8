@@ -1,4 +1,3 @@
-use crate::mem;
 pub type Addr = u16;
 pub type Instr = u16;
 pub type Regs = [u8; 16];
@@ -26,21 +25,6 @@ impl CPU {
         self
     }
 
-    fn load_instr(mem: &mem::Mem, i: Addr) -> Instr {
-        let bh: Instr = mem.load(i).into();
-        let bl: Instr = mem.load(i+1).into();
-        (bh << 8) | bl
-    }
-
-
-
-    /// Fetches next instruction (Opcode enum) from location
-    /// pointed to by cpu pc register
-    pub fn fetch(&mut self, mem: &mem::Mem) -> Option<Opcode> {
-        let instr = CPU::load_instr(mem, self.pc);
-        let opt_optcode = Opcode::from(instr);
-        opt_optcode
-    }
 
 }
 
