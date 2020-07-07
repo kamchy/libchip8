@@ -27,27 +27,30 @@ impl Mem {
     pub fn new() -> Self {
         Mem { cells: [0; 4096] }
     }
-   
+
     pub fn store(&mut self, i: Addr, v: u8) {
         self.cells[i as usize] = v;
     }
 
-    pub fn load(&mut self, i: Addr) -> u8 {
+    pub fn load(&self, i: Addr) -> u8 {
         self.cells[i as usize]
     }
 
-    pub fn get<I>(&self, index: I) -> Option<&<I as SliceIndex<[u8]>>::Output> 
+    pub fn get<I>(&self, index: I) -> Option<&<I as SliceIndex<[u8]>>::Output>
         where I: SliceIndex<[u8]>, {
         self.cells.get(index)
     }
 
-    // todo private?
-    pub fn load_font(&mut self, start: Addr) {
+    pub fn store_arr(&mut self, addr: Addr, v: &[u8]) {
+        for (idx, e) in v.into_iter().enumerate() {
+            self.store(addr + idx as u16, *e)
+        }
+    }
+
+    pub fn store_font(&mut self, start: Addr) {
         for i in 0..16 {
-            for b in 0..5 {
-                let a: Addr = start + i*5 + b;
-                self.store(a, FONT[i as usize][b as usize]);
-            }
+            let a: Addr = start + i*5;
+            self.store_arr(a, &FONT[i as usize]);
         }
     }
 }
