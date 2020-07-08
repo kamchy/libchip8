@@ -31,4 +31,13 @@ impl Screen {
         self.pixels[xi][yi]
         
     }
+
+    pub fn clear(&mut self) {
+        for c in 0..COLS {
+            for r in 0..ROWS {
+                self.pixels[c][r] = false;
+            }
+        }
+        
+    }
 }

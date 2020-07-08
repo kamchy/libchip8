@@ -24,7 +24,7 @@ impl Emulator {
 
 
     pub fn start_addr(&self) -> Addr {
-        200
+        0x200
     }
 
 
@@ -69,8 +69,16 @@ impl Emulator {
         self.cpu.pc(self.start_addr());
         loop {
             if let Some(op) = self.fetch() {
+                print!("Running opcode {:?}", op);
                 match op {
+                    Opcode::CLS => { self.scr.clear(); self.cpu.inc_pc(); },
+                    Opcode::RET => { self.cpu.ret(); self.cpu.inc_pc(); },
                     Opcode::JP(addr) => self.cpu.pc = addr,
+                    Opcode::CALL(addr) => self.cpu.call(addr),
+                    Opcode::SE(vx, byte) => self.cpu.skip_eq(vx.into(), byte),
+                    Opcode::SNE(vx, byte) => self.cpu.skip_neq(vx, byte),
+                    Opcode::SER(vx, vy) => self.cpu.skip_eq_reg(vx, vy),
+
                 }
 
             } else {

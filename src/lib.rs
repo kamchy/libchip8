@@ -82,13 +82,36 @@ mod tests {
     }
 
     #[test]
+    fn exec_jump_ret_test() {
+        let mut e = emulator::Emulator::new();
+        e.store(&[
+            cpu::Opcode::CALL(0x204),
+            cpu::Opcode::JP(0x209),
+            cpu::Opcode::CLS,
+            cpu::Opcode::RET,
+
+        ]);
+        e.run();
+        assert_eq!(e.mem.get(0x200..=0x208),
+                   Some(&[0x22, 0x04, 0x12, 0x09, 0x00, 0xE0, 0x00, 0xEE, 0x00][..]));
+        ae(e.cpu.pc, 0x0209);
+    }
+    fn ae(l: u16, r: u16) {
+        assert_eq!(l, r, "\nl=0x{:04X}, r=0x{:04X}", l, r);
+        
+    }
+
+    #[test]
     fn store_instr_test() {
         let mut e = emulator::Emulator::new();
         e.store(&[
             cpu::Opcode::JP(0x0105),
-            cpu::Opcode::JP(0x0ABC)]);
-        assert_eq!(e.mem.get(200..=203),
-                   Some(&[0x11, 0x05, 0x1A, 0xBC][..]));
+            cpu::Opcode::JP(0x0ABC),
+            cpu::Opcode::CALL(0x0123),
+            cpu::Opcode::SE(0x4, 0xFF),
+        ]);
+        assert_eq!(e.mem.get(0x200..=0x207),
+                   Some(&[0x11, 0x05, 0x1A, 0xBC, 0x21, 0x23, 0x34, 0xFF][..]));
     }
 }
 
