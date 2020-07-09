@@ -86,6 +86,10 @@ impl Emulator {
                         self.cpu.add(vx, byte);
                         self.cpu.inc_pc();
                     }
+                    Opcode::LDR(vx, vy) => {
+                        self.cpu.load_r(vx, vy);
+                        self.cpu.inc_pc();
+                    }
                 }
             } else {
                 break;

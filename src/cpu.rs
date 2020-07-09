@@ -1,4 +1,5 @@
 pub type Addr = u16;
+// TODO all instructions are one-byte, u8 would be ok
 pub type Instr = u16;
 pub type Reg = u8;
 pub type Regs = [Reg; 16];
@@ -72,6 +73,10 @@ impl CPU {
         self.regs[vx as usize] = byte;
     }
 
+    pub fn load_r(&mut self, vx: u8, vy: u8) {
+        self.regs[vx as usize] = self.regs[vy as usize];
+    }
+
     pub fn add(&mut self, vx: u8, byte: u8) {
         self.regs[vx as usize] += byte;
     }
@@ -99,6 +104,8 @@ pub enum Opcode {
     LD(u8, Reg),
     /// sets Vx = Vx + kk
     ADD(u8, Reg),
+    // sets Vx = Vy
+    LDR(u8, u8),
 }
 
 impl Opcode {
@@ -127,6 +134,8 @@ impl Opcode {
             Some(Opcode::LD((op >> 8 & 0xF) as u8, (op & 0xFF) as u8))
         } else if op & 0xF000 == 0x7000 {
             Some(Opcode::ADD((op >> 8 & 0xF) as u8, (op & 0xFF) as u8))
+        } else if op & 0xF00F == 0x8000 {
+            Some(Opcode::LDR((op >> 8 & 0xF) as u8, (op >> 4 & 0xF) as u8))
         } else {
             None
         }
@@ -143,6 +152,7 @@ impl Opcode {
             Opcode::SER(vx, vy) => 0x5000 | (*vx as u16) << 8 | (*vy as u16) << 4,
             Opcode::LD(vx, byte) => 0x6000 | (*vx as u16) << 8 | *byte as u16,
             Opcode::ADD(vx, byte) => 0x7000 | (*vx as u16) << 8 | *byte as u16,
+            Opcode::LDR(vx, vy) => 0x8000 | (*vx as u16) << 8 | (*vy as u16) << 4,
         };
         println!("\nto_instr for {:?} - {:02X}\n", &self, res);
         res
@@ -205,5 +215,11 @@ mod test {
     fn add_test() {
         assert_eq!(Opcode::from(0x7DA0), Some(Opcode::ADD(0xD, 0xA0)));
         assert_eq!(0x7DA0, Opcode::ADD(0xD, 0xA0).to_instr());
+    }
+
+    #[test]
+    fn ldr_test() {
+        assert_eq!(Opcode::from(0x8DA0), Some(Opcode::LDR(0xD, 0xA)));
+        assert_eq!(0x8DA0, Opcode::LDR(0xD, 0xA).to_instr());
     }
 }
