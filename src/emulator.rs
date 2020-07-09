@@ -78,6 +78,12 @@ impl Emulator {
                     Opcode::SE(vx, byte) => self.cpu.skip_eq(vx.into(), byte),
                     Opcode::SNE(vx, byte) => self.cpu.skip_neq(vx, byte),
                     Opcode::SER(vx, vy) => self.cpu.skip_eq_reg(vx, vy),
+                    Opcode::LD(vx, byte) => {
+                        self.cpu.load(vx, byte);
+                        self.cpu.inc_pc();
+                    }
+                    Opcode::ADD(vx, byte) => self.cpu.add(vx, byte),
+                    Opcode::LDR(vx, vy) => self.cpu.load_r(vx, vy),
                 }
             } else {
                 break;

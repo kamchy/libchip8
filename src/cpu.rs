@@ -63,8 +63,13 @@ impl CPU {
     pub fn skip_neq(&mut self, vx: usize, byte: Reg) {
         self.skip_if(self.regs[vx] != byte);
     }
+
     pub fn skip_eq_reg(&mut self, vx: usize, vy: usize) {
         self.skip_if(self.regs[vx] == self.regs[vy]);
+    }
+
+    pub fn load(&mut self, vx: u8, byte: u8) {
+        self.regs[vx as usize] = byte;
     }
 }
 
@@ -86,6 +91,8 @@ pub enum Opcode {
     /// skip next instr if contents of registers
     /// with given indices are equal
     SER(usize, usize),
+    /// sets vx=kk
+    LD(u8, Reg),
 }
 
 impl Opcode {
@@ -110,6 +117,8 @@ impl Opcode {
                 ((op & 0x0F00) >> 8).into(),
                 ((op & 0x00F0) >> 4).into(),
             ))
+        } else if op & 0xF000 == 0x6000 {
+            Some(Opcode::LD((op >> 8 & 0xF) as u8, (op & 0xFF) as u8))
         } else {
             None
         }
@@ -124,6 +133,7 @@ impl Opcode {
             Opcode::SE(vx, byte) => 0x3000 | (*vx as u16) << 8 | *byte as u16,
             Opcode::SNE(vx, byte) => 0x4000 | (*vx as u16) << 8 | *byte as u16,
             Opcode::SER(vx, vy) => 0x5000 | (*vx as u16) << 8 | (*vy as u16) << 4,
+            Opcode::LD(vx, byte) => 0x6000 | (*vx as u16) << 8 | *byte as u16,
         };
         println!("\nto_instr for {:?} - {:02X}\n", &self, res);
         res
@@ -174,5 +184,11 @@ mod test {
     fn ser_test() {
         assert_eq!(Opcode::from(0x5DA0), Some(Opcode::SER(0xD, 0xA)));
         assert_eq!(0x5DA0, Opcode::SER(0xD, 0xA).to_instr());
+    }
+
+    #[test]
+    fn ld_test() {
+        assert_eq!(Opcode::from(0x6DA0), Some(Opcode::LD(0xD, 0xA0)));
+        assert_eq!(0x6DA0, Opcode::LD(0xD, 0xA0).to_instr());
     }
 }
