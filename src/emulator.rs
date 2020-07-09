@@ -30,7 +30,7 @@ impl Emulator {
 
     fn store_instr(mem: &mut mem::Mem, addr: Addr, v: &[Instr]) {
         let mut a = addr;
-        for instr in v.into_iter() {
+        for instr in v.iter() {
             mem.store(a, (instr >> 8) as u8);
             mem.store(a + 1, (instr & 0x00ff) as u8);
             a += 2;
@@ -59,8 +59,7 @@ impl Emulator {
     /// pointed to by cpu pc register
     pub fn fetch(&mut self) -> Option<Opcode> {
         let instr = Emulator::load_instr(&self.mem, self.cpu.pc);
-        let opt_optcode = Opcode::from(instr);
-        opt_optcode
+        Opcode::from(instr)
     }
 
 
@@ -87,3 +86,10 @@ impl Emulator {
         }
     }
 }
+
+impl Default for Emulator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+

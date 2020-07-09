@@ -54,3 +54,11 @@ impl Mem {
         }
     }
 }
+
+impl Default for Mem {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+
