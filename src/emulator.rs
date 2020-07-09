@@ -90,6 +90,40 @@ impl Emulator {
                         self.cpu.load_r(vx, vy);
                         self.cpu.inc_pc();
                     }
+                    Opcode::AND(vx, vy) => {
+                        self.cpu.and(vx, vy);
+                        self.cpu.inc_pc();
+                    }
+                    Opcode::OR(vx, vy) => {
+                        self.cpu.or(vx, vy);
+                        self.cpu.inc_pc();
+                    }
+                    Opcode::XOR(vx, vy) => {
+                        self.cpu.xor(vx, vy);
+                        self.cpu.inc_pc();
+                    }
+                    Opcode::ADDR(vx, vy) => {
+                        self.cpu.addr(vx, vy);
+                        self.cpu.inc_pc();
+                    }
+                    Opcode::SUBR(vx, vy) => {
+                        self.cpu.subr(vx, vy);
+                        self.cpu.inc_pc();
+                    }
+                    Opcode::SHR(vx) => {
+                        self.cpu.shr(vx);
+                        self.cpu.inc_pc();
+                    }
+
+                    Opcode::SUBRN(vx, vy) => {
+                        self.cpu.subrn(vx, vy);
+                        self.cpu.inc_pc();
+                    }
+
+                    Opcode::SHL(vx) => {
+                        self.cpu.shl(vx);
+                        self.cpu.inc_pc();
+                    }
                 }
             } else {
                 break;

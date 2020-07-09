@@ -1,5 +1,4 @@
 pub type Addr = u16;
-// TODO all instructions are one-byte, u8 would be ok
 pub type Instr = u16;
 pub type Reg = u8;
 pub type Regs = [Reg; 16];
@@ -80,6 +79,48 @@ impl CPU {
     pub fn add(&mut self, vx: u8, byte: u8) {
         self.regs[vx as usize] += byte;
     }
+
+    pub fn or(&mut self, vx: u8, vy: u8) {
+        self.regs[vx as usize] |= self.regs[vy as usize];
+    }
+
+    pub fn and(&mut self, vx: u8, vy: u8) {
+        self.regs[vx as usize] &= self.regs[vy as usize];
+    }
+
+    pub fn xor(&mut self, vx: u8, vy: u8) {
+        self.regs[vx as usize] ^= self.regs[vy as usize];
+    }
+
+    pub fn addr(&mut self, vx: u8, vy: u8) {
+        let (sum, overflow) = self.regs[vx as usize].overflowing_add(self.regs[vy as usize]);
+        self.regs[0xF] = if overflow { 1 } else { 0 };
+        self.regs[vx as usize] = sum;
+    }
+
+    pub fn subr(&mut self, vx: u8, vy: u8) {
+        let (diff, overflow) = self.regs[vx as usize].overflowing_sub(self.regs[vy as usize]);
+        self.regs[0xF] = if !overflow { 1 } else { 0 };
+        self.regs[vx as usize] = diff;
+    }
+
+    pub fn shr(&mut self, vx: u8) {
+        let (res, overflow) = self.regs[vx as usize].overflowing_shr(1);
+        self.regs[0xF] = if overflow { 1 } else { 0 };
+        self.regs[vx as usize] = res;
+    }
+
+    pub fn subrn(&mut self, vx: u8, vy: u8) {
+        let (diff, overflow) = self.regs[vy as usize].overflowing_sub(self.regs[vx as usize]);
+        self.regs[0xF] = if !overflow { 1 } else { 0 };
+        self.regs[vx as usize] = diff;
+    }
+
+    pub fn shl(&mut self, vx: u8) {
+        let (res, overflow) = self.regs[vx as usize].overflowing_shl(1);
+        self.regs[0xF] = if overflow { 1 } else { 0 };
+        self.regs[vx as usize] = res;
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -104,8 +145,18 @@ pub enum Opcode {
     LD(u8, Reg),
     /// sets Vx = Vx + kk
     ADD(u8, Reg),
-    // sets Vx = Vy
+    /// sets Vx = Vy
     LDR(u8, u8),
+
+    /// Vx = Vx | Xy,  
+    OR(u8, u8),
+    AND(u8, u8),
+    XOR(u8, u8),
+    ADDR(u8, u8),
+    SUBR(u8, u8),
+    SHR(u8),
+    SUBRN(u8, u8),
+    SHL(u8),
 }
 
 impl Opcode {
@@ -136,6 +187,22 @@ impl Opcode {
             Some(Opcode::ADD((op >> 8 & 0xF) as u8, (op & 0xFF) as u8))
         } else if op & 0xF00F == 0x8000 {
             Some(Opcode::LDR((op >> 8 & 0xF) as u8, (op >> 4 & 0xF) as u8))
+        } else if op & 0xF00F == 0x8001 {
+            Some(Opcode::OR((op >> 8 & 0xF) as u8, (op >> 4 & 0xF) as u8))
+        } else if op & 0xF00F == 0x8002 {
+            Some(Opcode::AND((op >> 8 & 0xF) as u8, (op >> 4 & 0xF) as u8))
+        } else if op & 0xF00F == 0x8003 {
+            Some(Opcode::XOR((op >> 8 & 0xF) as u8, (op >> 4 & 0xF) as u8))
+        } else if op & 0xF00F == 0x8004 {
+            Some(Opcode::ADDR((op >> 8 & 0xF) as u8, (op >> 4 & 0xF) as u8))
+        } else if op & 0xF00F == 0x8005 {
+            Some(Opcode::SUBR((op >> 8 & 0xF) as u8, (op >> 4 & 0xF) as u8))
+        } else if op & 0xF00F == 0x8006 {
+            Some(Opcode::SHR((op >> 8 & 0xF) as u8))
+        } else if op & 0xF00F == 0x8007 {
+            Some(Opcode::SUBRN((op >> 8 & 0xF) as u8, (op >> 4 & 0xF) as u8))
+        } else if op & 0xF00F == 0x800E {
+            Some(Opcode::SHL((op >> 8 & 0xF) as u8))
         } else {
             None
         }
@@ -153,6 +220,14 @@ impl Opcode {
             Opcode::LD(vx, byte) => 0x6000 | (*vx as u16) << 8 | *byte as u16,
             Opcode::ADD(vx, byte) => 0x7000 | (*vx as u16) << 8 | *byte as u16,
             Opcode::LDR(vx, vy) => 0x8000 | (*vx as u16) << 8 | (*vy as u16) << 4,
+            Opcode::OR(vx, vy) => 0x8001 | (*vx as u16) << 8 | (*vy as u16) << 4,
+            Opcode::AND(vx, vy) => 0x8002 | (*vx as u16) << 8 | (*vy as u16) << 4,
+            Opcode::XOR(vx, vy) => 0x8003 | (*vx as u16) << 8 | (*vy as u16) << 4,
+            Opcode::ADDR(vx, vy) => 0x8004 | (*vx as u16) << 8 | (*vy as u16) << 4,
+            Opcode::SUBR(vx, vy) => 0x8005 | (*vx as u16) << 8 | (*vy as u16) << 4,
+            Opcode::SHR(vx) => 0x8006 | (*vx as u16) << 8,
+            Opcode::SUBRN(vx, vy) => 0x8007 | (*vx as u16) << 8 | (*vy as u16) << 4,
+            Opcode::SHL(vx) => 0x800E | (*vx as u16) << 8,
         };
         println!("\nto_instr for {:?} - {:02X}\n", &self, res);
         res
@@ -221,5 +296,53 @@ mod test {
     fn ldr_test() {
         assert_eq!(Opcode::from(0x8DA0), Some(Opcode::LDR(0xD, 0xA)));
         assert_eq!(0x8DA0, Opcode::LDR(0xD, 0xA).to_instr());
+    }
+
+    #[test]
+    fn or_test() {
+        assert_eq!(Opcode::from(0x8DA1), Some(Opcode::OR(0xD, 0xA)));
+        assert_eq!(0x8DA1, Opcode::OR(0xD, 0xA).to_instr());
+    }
+
+    #[test]
+    fn and_test() {
+        assert_eq!(Opcode::from(0x8DA2), Some(Opcode::AND(0xD, 0xA)));
+        assert_eq!(0x8DA2, Opcode::AND(0xD, 0xA).to_instr());
+    }
+
+    #[test]
+    fn xor_test() {
+        assert_eq!(Opcode::from(0x8DA3), Some(Opcode::XOR(0xD, 0xA)));
+        assert_eq!(0x8DA3, Opcode::XOR(0xD, 0xA).to_instr());
+    }
+
+    #[test]
+    fn addr_test() {
+        assert_eq!(Opcode::from(0x8DA4), Some(Opcode::ADDR(0xD, 0xA)));
+        assert_eq!(0x8DA4, Opcode::ADDR(0xD, 0xA).to_instr());
+    }
+
+    #[test]
+    fn subr_test() {
+        assert_eq!(Opcode::from(0x8DA5), Some(Opcode::SUBR(0xD, 0xA)));
+        assert_eq!(0x8DA5, Opcode::SUBR(0xD, 0xA).to_instr());
+    }
+
+    #[test]
+    fn shr_test() {
+        assert_eq!(Opcode::from(0x8DA6), Some(Opcode::SHR(0xD)));
+        assert_eq!(0x8D06, Opcode::SHR(0xD).to_instr());
+    }
+
+    #[test]
+    fn subrn_test() {
+        assert_eq!(Opcode::from(0x8DA7), Some(Opcode::SUBRN(0xD, 0xA)));
+        assert_eq!(0x8DA7, Opcode::SUBRN(0xD, 0xA).to_instr());
+    }
+
+    #[test]
+    fn shl_test() {
+        assert_eq!(Opcode::from(0x8DAE), Some(Opcode::SHL(0xD)));
+        assert_eq!(0x8D0E, Opcode::SHL(0xD).to_instr());
     }
 }
