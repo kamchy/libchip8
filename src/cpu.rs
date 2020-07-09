@@ -71,6 +71,10 @@ impl CPU {
     pub fn load(&mut self, vx: u8, byte: u8) {
         self.regs[vx as usize] = byte;
     }
+
+    pub fn add(&mut self, vx: u8, byte: u8) {
+        self.regs[vx as usize] += byte;
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -93,6 +97,8 @@ pub enum Opcode {
     SER(usize, usize),
     /// sets vx=kk
     LD(u8, Reg),
+    /// sets Vx = Vx + kk
+    ADD(u8, Reg),
 }
 
 impl Opcode {
@@ -119,6 +125,8 @@ impl Opcode {
             ))
         } else if op & 0xF000 == 0x6000 {
             Some(Opcode::LD((op >> 8 & 0xF) as u8, (op & 0xFF) as u8))
+        } else if op & 0xF000 == 0x7000 {
+            Some(Opcode::ADD((op >> 8 & 0xF) as u8, (op & 0xFF) as u8))
         } else {
             None
         }
@@ -134,6 +142,7 @@ impl Opcode {
             Opcode::SNE(vx, byte) => 0x4000 | (*vx as u16) << 8 | *byte as u16,
             Opcode::SER(vx, vy) => 0x5000 | (*vx as u16) << 8 | (*vy as u16) << 4,
             Opcode::LD(vx, byte) => 0x6000 | (*vx as u16) << 8 | *byte as u16,
+            Opcode::ADD(vx, byte) => 0x7000 | (*vx as u16) << 8 | *byte as u16,
         };
         println!("\nto_instr for {:?} - {:02X}\n", &self, res);
         res
@@ -190,5 +199,11 @@ mod test {
     fn ld_test() {
         assert_eq!(Opcode::from(0x6DA0), Some(Opcode::LD(0xD, 0xA0)));
         assert_eq!(0x6DA0, Opcode::LD(0xD, 0xA0).to_instr());
+    }
+
+    #[test]
+    fn add_test() {
+        assert_eq!(Opcode::from(0x7DA0), Some(Opcode::ADD(0xD, 0xA0)));
+        assert_eq!(0x7DA0, Opcode::ADD(0xD, 0xA0).to_instr());
     }
 }
