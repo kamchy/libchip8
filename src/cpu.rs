@@ -15,7 +15,14 @@ pub struct CPU {
 
 impl CPU {
     pub fn from(pc: Addr, i: Addr, regs: Regs, sp: Addr, instr: Option<Opcode>) -> Self {
-        CPU { pc, i, regs, sp, stack: vec![], instr}
+        CPU {
+            pc,
+            i,
+            regs,
+            sp,
+            stack: vec![],
+            instr,
+        }
     }
 
     pub fn new() -> Self {
@@ -29,7 +36,6 @@ impl CPU {
 
     pub fn inc_pc(&mut self) {
         self.pc += 2;
-        
     }
 
     pub fn ret(&mut self) {
@@ -47,7 +53,7 @@ impl CPU {
     }
 
     fn skip_if(&mut self, pred: bool) {
-       self.pc += if pred { 4 } else { 2 };
+        self.pc += if pred { 4 } else { 2 };
     }
 
     pub fn skip_eq(&mut self, vx: usize, byte: Reg) {
@@ -77,7 +83,7 @@ pub enum Opcode {
     SE(u8, Reg),
     /// skips if not equals
     SNE(usize, Reg),
-    /// skip next instr if contents of registers 
+    /// skip next instr if contents of registers
     /// with given indices are equal
     SER(usize, usize),
 }
@@ -95,14 +101,19 @@ impl Opcode {
         } else if op & 0xF000 == 0x3000 {
             Some(Opcode::SE(((op & 0x0F00) >> 8) as u8, (op & 0x00FF) as u8))
         } else if op & 0xF000 == 0x4000 {
-            Some(Opcode::SNE(((op & 0x0F00) >> 8).into(), (op & 0x00FF) as u8))
+            Some(Opcode::SNE(
+                ((op & 0x0F00) >> 8).into(),
+                (op & 0x00FF) as u8,
+            ))
         } else if op & 0xF00F == 0x5000 {
-            Some(Opcode::SER(((op & 0x0F00) >> 8).into(), ((op & 0x00F0) >> 4).into()))
+            Some(Opcode::SER(
+                ((op & 0x0F00) >> 8).into(),
+                ((op & 0x00F0) >> 4).into(),
+            ))
         } else {
             None
         }
     }
-
 
     pub fn to_instr(&self) -> Instr {
         let res = match self {
@@ -110,16 +121,14 @@ impl Opcode {
             Opcode::RET => 0x00EE,
             Opcode::JP(a) => 0x1000 | a,
             Opcode::CALL(a) => 0x2000 | a,
-            Opcode::SE(vx, byte) => 0x3000 | (*vx as u16) << 8  | *byte as u16,
+            Opcode::SE(vx, byte) => 0x3000 | (*vx as u16) << 8 | *byte as u16,
             Opcode::SNE(vx, byte) => 0x4000 | (*vx as u16) << 8 | *byte as u16,
             Opcode::SER(vx, vy) => 0x5000 | (*vx as u16) << 8 | (*vy as u16) << 4,
-            
         };
         println!("\nto_instr for {:?} - {:02X}\n", &self, res);
         res
     }
 }
-
 
 #[cfg(test)]
 mod test {
@@ -136,7 +145,6 @@ mod test {
         assert_eq!(Opcode::from(0x00EE), Some(Opcode::RET));
         assert_eq!(0x00EE, Opcode::RET.to_instr());
     }
-
 
     #[test]
     fn jp_test() {
@@ -167,5 +175,4 @@ mod test {
         assert_eq!(Opcode::from(0x5DA0), Some(Opcode::SER(0xD, 0xA)));
         assert_eq!(0x5DA0, Opcode::SER(0xD, 0xA).to_instr());
     }
-    
 }

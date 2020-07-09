@@ -1,7 +1,7 @@
-use std::slice::SliceIndex;
 use crate::cpu::Addr;
+use std::slice::SliceIndex;
 
-const FONT: [[u8;5];16] = [
+const FONT: [[u8; 5]; 16] = [
     [0xF0, 0x90, 0x90, 0x90, 0xF0],
     [0x20, 0x60, 0x20, 0x20, 0x70],
     [0xF0, 0x10, 0xF0, 0x80, 0xF0],
@@ -17,10 +17,11 @@ const FONT: [[u8;5];16] = [
     [0xF0, 0x80, 0x80, 0x80, 0xF0],
     [0xE0, 0x90, 0x90, 0x90, 0xE0],
     [0xF0, 0x80, 0xF0, 0x80, 0xF0],
-    [0xF0, 0x80, 0xF0, 0x80, 0x80]];
+    [0xF0, 0x80, 0xF0, 0x80, 0x80],
+];
 
 pub struct Mem {
-    cells: [u8;4096],
+    cells: [u8; 4096],
 }
 
 impl Mem {
@@ -37,19 +38,21 @@ impl Mem {
     }
 
     pub fn get<I>(&self, index: I) -> Option<&<I as SliceIndex<[u8]>>::Output>
-        where I: SliceIndex<[u8]>, {
+    where
+        I: SliceIndex<[u8]>,
+    {
         self.cells.get(index)
     }
 
     pub fn store_arr(&mut self, addr: Addr, v: &[u8]) {
-        for (idx, e) in v.into_iter().enumerate() {
+        for (idx, e) in v.iter().enumerate() {
             self.store(addr + idx as u16, *e)
         }
     }
 
     pub fn store_font(&mut self, start: Addr) {
         for i in 0..16 {
-            let a: Addr = start + i*5;
+            let a: Addr = start + i * 5;
             self.store_arr(a, &FONT[i as usize]);
         }
     }
@@ -60,5 +63,3 @@ impl Default for Mem {
         Self::new()
     }
 }
-
-
