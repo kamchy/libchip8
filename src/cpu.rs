@@ -68,6 +68,10 @@ impl CPU {
         self.skip_if(self.regs[vx] == self.regs[vy]);
     }
 
+    pub fn skip_neq_reg(&mut self, vx: u8, vy: u8) {
+        self.skip_if(self.regs[vx as usize] != self.regs[vy as usize]);
+    }
+
     pub fn load(&mut self, vx: u8, byte: u8) {
         self.regs[vx as usize] = byte;
     }
@@ -148,7 +152,6 @@ pub enum Opcode {
     /// sets Vx = Vy
     LDR(u8, u8),
 
-    /// Vx = Vx | Xy,  
     OR(u8, u8),
     AND(u8, u8),
     XOR(u8, u8),
@@ -157,6 +160,7 @@ pub enum Opcode {
     SHR(u8),
     SUBRN(u8, u8),
     SHL(u8),
+    SNER(u8, u8),
 }
 
 impl Opcode {
@@ -203,6 +207,8 @@ impl Opcode {
             Some(Opcode::SUBRN((op >> 8 & 0xF) as u8, (op >> 4 & 0xF) as u8))
         } else if op & 0xF00F == 0x800E {
             Some(Opcode::SHL((op >> 8 & 0xF) as u8))
+        } else if op & 0xF00F == 0x9000 {
+            Some(Opcode::SNER((op >> 8 & 0xF) as u8, (op >> 4 & 0xF) as u8))
         } else {
             None
         }
@@ -228,6 +234,7 @@ impl Opcode {
             Opcode::SHR(vx) => 0x8006 | (*vx as u16) << 8,
             Opcode::SUBRN(vx, vy) => 0x8007 | (*vx as u16) << 8 | (*vy as u16) << 4,
             Opcode::SHL(vx) => 0x800E | (*vx as u16) << 8,
+            Opcode::SNER(vx, vy) => 0x9000 | (*vx as u16) << 8 | (*vy as u16) << 4,
         };
         println!("\nto_instr for {:?} - {:02X}\n", &self, res);
         res
@@ -344,5 +351,11 @@ mod test {
     fn shl_test() {
         assert_eq!(Opcode::from(0x8DAE), Some(Opcode::SHL(0xD)));
         assert_eq!(0x8D0E, Opcode::SHL(0xD).to_instr());
+    }
+
+    #[test]
+    fn sner_test() {
+        assert_eq!(Opcode::from(0x9DA0), Some(Opcode::SNER(0xD, 0xA)));
+        assert_eq!(0x9DA0, Opcode::SNER(0xD, 0xA).to_instr());
     }
 }

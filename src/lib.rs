@@ -1,6 +1,7 @@
 pub mod cpu;
 pub mod display;
 pub mod emulator;
+pub mod loader;
 pub mod mem;
 
 #[cfg(test)]
@@ -76,8 +77,8 @@ mod tests {
         let mut e = emulator::Emulator::new();
         e.mem.store_font(0);
 
-        let prog = [cpu::Opcode::JP(0x0123)];
-        e.store(&prog);
+        e.store_instr(&[cpu::Opcode::JP(0x0123).to_instr()]);
+
         e.run();
         assert_eq!(e.cpu.pc, 0x0123);
     }
