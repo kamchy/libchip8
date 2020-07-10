@@ -2,7 +2,7 @@ pub type Addr = u16;
 pub type Instr = u16;
 pub type Reg = u8;
 pub type Regs = [Reg; 16];
-
+use rand::prelude::*;
 #[derive(Default, PartialEq, Debug)]
 pub struct CPU {
     pub pc: Addr,
@@ -125,6 +125,17 @@ impl CPU {
         self.regs[0xF] = if overflow { 1 } else { 0 };
         self.regs[vx as usize] = res;
     }
+    pub fn ldi(&mut self, addr: Addr) {
+        self.i = addr;
+    }
+
+    pub fn jpoff(&mut self, addr: Addr) {
+        self.pc = self.regs[0] as u16 + addr;
+    }
+
+    pub fn rnd(&mut self, vx: u8, byte: u8) {
+        self.regs[vx as usize] = rand::random::<u8>() & byte;
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -161,6 +172,9 @@ pub enum Opcode {
     SUBRN(u8, u8),
     SHL(u8),
     SNER(u8, u8),
+    LDI(u16),
+    JPOFF(u16),
+    RND(u8, u8),
 }
 
 impl Opcode {
@@ -209,6 +223,12 @@ impl Opcode {
             Some(Opcode::SHL((op >> 8 & 0xF) as u8))
         } else if op & 0xF00F == 0x9000 {
             Some(Opcode::SNER((op >> 8 & 0xF) as u8, (op >> 4 & 0xF) as u8))
+        } else if op & 0xF000 == 0xA000 {
+            Some(Opcode::LDI(op & 0x0FFF))
+        } else if op & 0xF000 == 0xB000 {
+            Some(Opcode::JPOFF(op & 0x0FFF))
+        } else if op & 0xF000 == 0xC000 {
+            Some(Opcode::RND((op >> 8 & 0xF) as u8, (op >> 4 & 0xF) as u8))
         } else {
             None
         }
@@ -235,6 +255,9 @@ impl Opcode {
             Opcode::SUBRN(vx, vy) => 0x8007 | (*vx as u16) << 8 | (*vy as u16) << 4,
             Opcode::SHL(vx) => 0x800E | (*vx as u16) << 8,
             Opcode::SNER(vx, vy) => 0x9000 | (*vx as u16) << 8 | (*vy as u16) << 4,
+            Opcode::LDI(a) => 0xA000 | a,
+            Opcode::JPOFF(a) => 0xB000 | a,
+            Opcode::RND(vx, vy) => 0xC000 | (*vx as u16) << 8 | (*vy as u16) << 4,
         };
         println!("\nto_instr for {:?} - {:02X}\n", &self, res);
         res
@@ -357,5 +380,17 @@ mod test {
     fn sner_test() {
         assert_eq!(Opcode::from(0x9DA0), Some(Opcode::SNER(0xD, 0xA)));
         assert_eq!(0x9DA0, Opcode::SNER(0xD, 0xA).to_instr());
+    }
+
+    #[test]
+    fn ldi_test() {
+        assert_eq!(Opcode::from(0xADA0), Some(Opcode::LDI(0xDA0)));
+        assert_eq!(0xADA0, Opcode::LDI(0xDA0).to_instr());
+    }
+
+    #[test]
+    fn jpoff_test() {
+        assert_eq!(Opcode::from(0xBDB0), Some(Opcode::JPOFF(0xDB0)));
+        assert_eq!(0xBDB0, Opcode::JPOFF(0xDB0).to_instr());
     }
 }

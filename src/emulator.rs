@@ -134,6 +134,12 @@ impl Emulator {
                 self.cpu.inc_pc();
             }
             Opcode::SNER(vx, vy) => self.cpu.skip_neq_reg(vx, vy),
+            Opcode::LDI(a) => {
+                self.cpu.ldi(a);
+                self.cpu.inc_pc();
+            }
+            Opcode::JPOFF(a) => self.cpu.jpoff(a),
+            Opcode::RND(vx, byte) => self.cpu.rnd(vx, byte),
         }
     }
     /// Runs instructions from start memory location in a loop
@@ -158,6 +164,7 @@ impl Default for Emulator {
 #[cfg(test)]
 mod loadingtest {
     use super::Emulator;
+
     #[test]
     fn simple_test() {
         let mut e = Emulator::new();
@@ -165,5 +172,23 @@ mod loadingtest {
         assert_eq!(0x6105, e.load_instr(0x200));
         e.run();
         assert_eq!(e.cpu.regs[1], 14);
+    }
+
+    #[test]
+    fn ldi_test() {
+        let mut e = Emulator::new();
+        e.store_instr(&[0xA124]);
+        assert_eq!(0xA124, e.load_instr(0x200));
+        e.run();
+        assert_eq!(e.cpu.i, 0x124);
+    }
+    #[test]
+    fn jpoff_test() {
+        let mut e = Emulator::new();
+        e.store_instr(&[0x6001, 0xB124]);
+        assert_eq!(0x6001, e.load_instr(0x200));
+        assert_eq!(0xB124, e.load_instr(0x202));
+        e.run();
+        assert_eq!(e.cpu.pc, 0x125);
     }
 }
