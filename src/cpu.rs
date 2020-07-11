@@ -2,7 +2,7 @@ pub type Addr = u16;
 pub type Instr = u16;
 pub type Reg = u8;
 pub type Regs = [Reg; 16];
-use rand::prelude::*;
+
 #[derive(Default, PartialEq, Debug)]
 pub struct CPU {
     pub pc: Addr,
@@ -175,6 +175,7 @@ pub enum Opcode {
     LDI(u16),
     JPOFF(u16),
     RND(u8, u8),
+    DRW(u8, u8, u8),
 }
 
 impl Opcode {
@@ -229,6 +230,12 @@ impl Opcode {
             Some(Opcode::JPOFF(op & 0x0FFF))
         } else if op & 0xF000 == 0xC000 {
             Some(Opcode::RND((op >> 8 & 0xF) as u8, (op >> 4 & 0xF) as u8))
+        } else if op & 0xF000 == 0xD000 {
+            Some(Opcode::DRW(
+                (op >> 8 & 0xF) as u8,
+                (op >> 4 & 0xF) as u8,
+                (op & 0xF) as u8,
+            ))
         } else {
             None
         }
@@ -258,6 +265,7 @@ impl Opcode {
             Opcode::LDI(a) => 0xA000 | a,
             Opcode::JPOFF(a) => 0xB000 | a,
             Opcode::RND(vx, vy) => 0xC000 | (*vx as u16) << 8 | (*vy as u16) << 4,
+            Opcode::DRW(vx, vy, n) => 0xD000 | (*vx as u16) << 8 | (*vy as u16) << 4 | (*n as u16),
         };
         println!("\nto_instr for {:?} - {:02X}\n", &self, res);
         res
@@ -392,5 +400,11 @@ mod test {
     fn jpoff_test() {
         assert_eq!(Opcode::from(0xBDB0), Some(Opcode::JPOFF(0xDB0)));
         assert_eq!(0xBDB0, Opcode::JPOFF(0xDB0).to_instr());
+    }
+
+    #[test]
+    fn drw_test() {
+        assert_eq!(Opcode::from(0xDDB1), Some(Opcode::DRW(0xD, 0xB, 1)));
+        assert_eq!(0xDDB1, Opcode::DRW(0xD, 0xB, 1).to_instr());
     }
 }

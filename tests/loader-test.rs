@@ -5,7 +5,7 @@ mod xtests {
     use libchip8::loader::load;
 
     #[test]
-    fn load_test() {
+    fn add_test() {
         let mut e = Emulator::new();
         load(&mut e, &String::from("tests/hex.b"));
         e.run();

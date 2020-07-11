@@ -59,11 +59,11 @@ impl Emulator {
     /// Fetches next instruction (Opcode enum) from location
     /// pointed to by cpu pc register
     fn fetch(&mut self) -> Option<Opcode> {
-        println!("fecting... from addr 0x{:02X}", self.cpu.pc);
+        println!("fetching... from addr 0x{:02X}", self.cpu.pc);
 
         let instr = self.load_instr(self.cpu.pc);
         println!(
-            "feched... {:?} -> opcode is {:?}",
+            "feched 0x{:02X} -> opcode is {:?}",
             instr,
             Opcode::from(instr)
         );
@@ -72,7 +72,7 @@ impl Emulator {
     }
 
     fn exec(&mut self, op: Opcode) {
-        print!("Running opcode {:?}", op);
+        println!("Running opcode {:?}", op);
         match op {
             Opcode::CLS => {
                 self.scr.clear();
@@ -139,9 +139,35 @@ impl Emulator {
                 self.cpu.inc_pc();
             }
             Opcode::JPOFF(a) => self.cpu.jpoff(a),
-            Opcode::RND(vx, byte) => self.cpu.rnd(vx, byte),
+            Opcode::RND(vx, byte) => {
+                self.cpu.rnd(vx, byte);
+                self.cpu.inc_pc();
+            }
+            Opcode::DRW(vx, vy, n) => {
+                self.draw(vx, vy, n);
+                self.cpu.inc_pc();
+            }
         }
     }
+
+    fn draw(&mut self, vx: u8, vy: u8, n: u8) {
+        let mut collision = false;
+        let vx = self.cpu.regs[vx as usize];
+        let vy = self.cpu.regs[vy as usize];
+        for line_num in 0..n {
+            let memloc = self.cpu.i + line_num as u16;
+            let byte = self.mem.load(memloc);
+            for bit in 0..8 {
+                if byte & (1 << (7 - bit)) != 0 {
+                    // no short-cirquitting, please
+                    collision = collision | self.scr.switch(vx + bit, vy + line_num);
+                }
+            }
+        }
+
+        self.cpu.regs[0xF] = if collision { 1 } else { 0 };
+    }
+
     /// Runs instructions from start memory location in a loop
     pub fn run(&mut self) {
         self.cpu.pc(self.start_addr());
@@ -190,5 +216,16 @@ mod loadingtest {
         assert_eq!(0xB124, e.load_instr(0x202));
         e.run();
         assert_eq!(e.cpu.pc, 0x125);
+    }
+
+    #[test]
+    fn draw_test() {
+        let mut e = Emulator::new();
+        e.mem.store_font(0);
+        e.store_instr(&[0x6201, 0x6302, 0xD232]);
+        e.run();
+        assert_eq!(0, e.cpu.i);
+        assert_eq!(true, e.scr.get(1, 2), "checking scr(1,2) is true");
+        assert_eq!(e.cpu.pc, 0x200 + 6);
     }
 }
