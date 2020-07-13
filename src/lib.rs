@@ -1,6 +1,7 @@
 pub mod cpu;
 pub mod display;
 pub mod emulator;
+pub mod input;
 pub mod loader;
 pub mod mem;
 

@@ -52,7 +52,7 @@ impl CPU {
         self.pc = a;
     }
 
-    fn skip_if(&mut self, pred: bool) {
+    pub fn skip_if(&mut self, pred: bool) {
         self.pc += if pred { 4 } else { 2 };
     }
 
@@ -176,6 +176,8 @@ pub enum Opcode {
     JPOFF(u16),
     RND(u8, u8),
     DRW(u8, u8, u8),
+    SKP(u8),
+    SKNP(u8),
 }
 
 impl Opcode {
@@ -236,6 +238,10 @@ impl Opcode {
                 (op >> 4 & 0xF) as u8,
                 (op & 0xF) as u8,
             ))
+        } else if op & 0xF0FF == 0xE09E {
+            Some(Opcode::SKP((op >> 8 & 0x0F) as u8))
+        } else if op & 0xF0FF == 0xE0A1 {
+            Some(Opcode::SKNP((op >> 8 & 0x0F) as u8))
         } else {
             None
         }
@@ -266,6 +272,8 @@ impl Opcode {
             Opcode::JPOFF(a) => 0xB000 | a,
             Opcode::RND(vx, vy) => 0xC000 | (*vx as u16) << 8 | (*vy as u16) << 4,
             Opcode::DRW(vx, vy, n) => 0xD000 | (*vx as u16) << 8 | (*vy as u16) << 4 | (*n as u16),
+            Opcode::SKP(a) => 0xE09E | (*a as u16) << 8,
+            Opcode::SKNP(a) => 0xE0A1 | (*a as u16) << 8,
         };
         println!("\nto_instr for {:?} - {:02X}\n", &self, res);
         res
@@ -406,5 +414,17 @@ mod test {
     fn drw_test() {
         assert_eq!(Opcode::from(0xDDB1), Some(Opcode::DRW(0xD, 0xB, 1)));
         assert_eq!(0xDDB1, Opcode::DRW(0xD, 0xB, 1).to_instr());
+    }
+
+    #[test]
+    fn skp_test() {
+        assert_eq!(Opcode::from(0xE19E), Some(Opcode::SKP(1)));
+        assert_eq!(0xE19E, Opcode::SKP(1).to_instr());
+    }
+
+    #[test]
+    fn sknp_test() {
+        assert_eq!(Opcode::from(0xE1A1), Some(Opcode::SKNP(1)));
+        assert_eq!(0xE1A1, Opcode::SKNP(1).to_instr());
     }
 }

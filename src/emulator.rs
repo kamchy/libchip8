@@ -2,6 +2,7 @@ use crate::cpu;
 use crate::cpu::Instr;
 use crate::cpu::Opcode;
 use crate::display;
+use crate::input;
 use crate::mem;
 
 use cpu::Addr;
@@ -10,6 +11,7 @@ pub struct Emulator {
     pub cpu: cpu::CPU,
     pub mem: mem::Mem,
     pub scr: display::Screen,
+    pub kbd: input::Keyboard,
 }
 
 impl Emulator {
@@ -19,6 +21,7 @@ impl Emulator {
             cpu: cpu::CPU::new(),
             mem: mem::Mem::new(),
             scr: display::Screen::new(),
+            kbd: input::Keyboard::new(),
         }
     }
 
@@ -147,6 +150,8 @@ impl Emulator {
                 self.draw(vx, vy, n);
                 self.cpu.inc_pc();
             }
+            Opcode::SKP(vx) => self.cpu.skip_if(self.kbd.get(vx as usize)),
+            Opcode::SKNP(vx) => self.cpu.skip_if(!self.kbd.get(vx as usize)),
         }
     }
 
@@ -159,7 +164,6 @@ impl Emulator {
             let byte = self.mem.load(memloc);
             for bit in 0..8 {
                 if byte & (1 << (7 - bit)) != 0 {
-                    // no short-cirquitting, please
                     collision = collision | self.scr.switch(vx + bit, vy + line_num);
                 }
             }
