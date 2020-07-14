@@ -6,6 +6,7 @@ use crate::input;
 use crate::mem;
 
 use cpu::Addr;
+///
 /// Emulator capable of running chip-8 binaries
 pub struct Emulator {
     pub cpu: cpu::CPU,
@@ -29,6 +30,10 @@ impl Emulator {
         0x200
     }
 
+    pub fn store_font(&mut self) {
+        self.mem.store_font(0);
+        self.cpu.i = 0;
+    }
     pub fn store_instr(&mut self, v: &[Instr]) {
         let mut a = self.start_addr();
         for instr in v.iter() {
@@ -37,6 +42,7 @@ impl Emulator {
             self.mem.store(a + 1, (instr & 0x00ff) as u8);
             a += 2;
         }
+        self.cpu.pc(self.start_addr());
     }
 
     fn load_instr(&self, i: Addr) -> Instr {
@@ -48,6 +54,7 @@ impl Emulator {
     /// stores slice of bytes at start_addr
     pub fn store_bytes(&mut self, v: &[u8]) {
         self.mem.store_arr(self.start_addr(), v);
+        self.cpu.pc(self.start_addr());
     }
 
     /// Stores slice of opcodes at start address
@@ -172,7 +179,6 @@ impl Emulator {
         self.cpu.regs[0xF] = if collision { 1 } else { 0 };
     }
 
-    /// Runs instructions from start memory location in a loop
     pub fn run(&mut self) {
         self.cpu.pc(self.start_addr());
         loop {
@@ -225,7 +231,7 @@ mod loadingtest {
     #[test]
     fn draw_test() {
         let mut e = Emulator::new();
-        e.mem.store_font(0);
+        e.store_font();
         e.store_instr(&[0x6201, 0x6302, 0xD232]);
         e.run();
         assert_eq!(0, e.cpu.i);
