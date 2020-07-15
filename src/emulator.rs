@@ -37,7 +37,6 @@ impl Emulator {
     pub fn store_instr(&mut self, v: &[Instr]) {
         let mut a = self.start_addr();
         for instr in v.iter() {
-            print!("store_inst: storing 0x{:04X} at 0x{:04X}\n", instr, a);
             self.mem.store(a, (instr >> 8) as u8);
             self.mem.store(a + 1, (instr & 0x00ff) as u8);
             a += 2;
@@ -69,20 +68,18 @@ impl Emulator {
     /// Fetches next instruction (Opcode enum) from location
     /// pointed to by cpu pc register
     fn fetch(&mut self) -> Option<Opcode> {
-        println!("fetching... from addr 0x{:02X}", self.cpu.pc);
-
         let instr = self.load_instr(self.cpu.pc);
-        println!(
-            "feched 0x{:02X} -> opcode is {:?}",
-            instr,
-            Opcode::from(instr)
-        );
-
-        Opcode::from(instr)
+        let op = Opcode::from(instr);
+        self.cpu.instr = op;
+        op
     }
 
+    pub fn step(&mut self) {
+        if let Some(op) = self.fetch() {
+            self.exec(op);
+        }
+    }
     fn exec(&mut self, op: Opcode) {
-        println!("Running opcode {:?}", op);
         match op {
             Opcode::CLS => {
                 self.scr.clear();

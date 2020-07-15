@@ -138,7 +138,7 @@ impl CPU {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Opcode {
     /// clear screen
     CLS,
@@ -275,7 +275,6 @@ impl Opcode {
             Opcode::SKP(a) => 0xE09E | (*a as u16) << 8,
             Opcode::SKNP(a) => 0xE0A1 | (*a as u16) << 8,
         };
-        println!("\nto_instr for {:?} - {:02X}\n", &self, res);
         res
     }
 }
