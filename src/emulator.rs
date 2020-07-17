@@ -168,6 +168,80 @@ impl Emulator {
             }
             Opcode::SKP(vx) => self.cpu.skip_if(self.kbd.get(vx as usize)),
             Opcode::SKNP(vx) => self.cpu.skip_if(!self.kbd.get(vx as usize)),
+            Opcode::KEYSET(vx) => {
+                self.keyset(vx);
+                self.cpu.inc_pc();
+            }
+            Opcode::DTSET(vx) => {
+                self.cpu.dtset(vx);
+                self.cpu.inc_pc();
+            }
+            Opcode::DTGET(vx) => {
+                self.cpu.dtget(vx);
+                self.cpu.inc_pc();
+            }
+            Opcode::STSET(vx) => {
+                self.cpu.stset(vx);
+                self.cpu.inc_pc();
+            }
+            Opcode::IINC(vx) => {
+                self.cpu.iinc(vx);
+                self.cpu.inc_pc();
+            }
+            Opcode::IDIG(vx) => {
+                self.idig(vx);
+                self.cpu.inc_pc();
+            }
+            Opcode::BCD(vx) => {
+                self.bcd(vx);
+                self.cpu.inc_pc();
+            }
+            Opcode::REGSSTORE(vx) => {
+                self.regsstore(vx);
+                self.cpu.inc_pc();
+            }
+            Opcode::REGLOAD(vx) => {
+                self.regsload(vx);
+                self.cpu.inc_pc();
+            }
+        }
+    }
+
+    fn regsstore(&mut self, vx: u8) {
+        self.mem
+            .store_arr(self.cpu.i, &self.cpu.regs[0..=vx as usize]);
+    }
+
+    fn regsload(&mut self, vx: u8) {
+        for i_offset in 0..=vx {
+            if let Some(val) = self.mem.get((self.cpu.i + i_offset as u16) as usize) {
+                self.cpu.regs[i_offset as usize] = *val;
+            }
+        }
+    }
+
+    fn split_val(v: u8) -> [u8; 3] {
+        [v / 100, v / 10, v % 10]
+    }
+
+    fn bcd(&mut self, vx: u8) {
+        let val = self.cpu.regs[vx as usize];
+        match Emulator::split_val(val) {
+            [h, t, d] => {
+                self.mem.store(self.cpu.i, h);
+                self.mem.store(self.cpu.i + 1, t);
+                self.mem.store(self.cpu.i + 2, d);
+            }
+        }
+    }
+
+    fn idig(&mut self, vx: u8) {
+        self.cpu.i = self.mem.addr_of_font(self.cpu.regs[vx as usize]);
+    }
+
+    fn keyset(&mut self, vx: u8) {
+        if let Some(idx) = self.kbd.down_key() {
+            self.cpu.regs[vx as usize] = idx as u8;
         }
     }
 

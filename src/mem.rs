@@ -22,11 +22,17 @@ const FONT: [[u8; 5]; 16] = [
 
 pub struct Mem {
     cells: [u8; 4096],
+    start_addr: Addr,
 }
 
 impl Mem {
+    const FONT_SIZE_BYTES: u16 = 5;
+
     pub fn new() -> Self {
-        Mem { cells: [0; 4096] }
+        Mem {
+            cells: [0; 4096],
+            start_addr: 0x0000,
+        }
     }
 
     pub fn store(&mut self, i: Addr, v: u8) {
@@ -51,10 +57,15 @@ impl Mem {
     }
 
     pub fn store_font(&mut self, start: Addr) {
+        self.start_addr = start;
         for i in 0..16 {
-            let a: Addr = start + i * 5;
+            let a: Addr = start + i * Mem::FONT_SIZE_BYTES;
             self.store_arr(a, &FONT[i as usize]);
         }
+    }
+
+    pub fn addr_of_font(&self, digit: u8) -> u16 {
+        self.start_addr + Mem::FONT_SIZE_BYTES * digit as u16
     }
 }
 

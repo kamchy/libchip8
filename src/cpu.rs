@@ -5,16 +5,34 @@ pub type Regs = [Reg; 16];
 
 #[derive(Default, PartialEq, Debug)]
 pub struct CPU {
+    ///
     pub pc: Addr,
+    /// I register stroring address for sprites
     pub i: Addr,
+    /// 16 registers
     pub regs: Regs,
+    /// stack pointer
     pub sp: Addr,
+    /// stack of return addresses for subroutines
     stack: Vec<Addr>,
+    /// fetched instruction to be executed
     pub instr: Option<Opcode>,
+    /// delay timer regiter
+    pub dt: Reg,
+    /// sound timer register
+    pub st: Reg,
 }
 
 impl CPU {
-    pub fn from(pc: Addr, i: Addr, regs: Regs, sp: Addr, instr: Option<Opcode>) -> Self {
+    pub fn from(
+        pc: Addr,
+        i: Addr,
+        regs: Regs,
+        sp: Addr,
+        instr: Option<Opcode>,
+        dt: Reg,
+        st: Reg,
+    ) -> Self {
         CPU {
             pc,
             i,
@@ -22,6 +40,8 @@ impl CPU {
             sp,
             stack: vec![],
             instr,
+            dt,
+            st,
         }
     }
 
@@ -136,6 +156,22 @@ impl CPU {
     pub fn rnd(&mut self, vx: u8, byte: u8) {
         self.regs[vx as usize] = rand::random::<u8>() & byte;
     }
+
+    pub fn dtset(&mut self, vx: u8) {
+        self.dt = self.regs[vx as usize];
+    }
+
+    pub fn dtget(&mut self, vx: u8) {
+        self.regs[vx as usize] = self.dt;
+    }
+
+    pub fn stset(&mut self, vx: u8) {
+        self.st = self.regs[vx as usize];
+    }
+
+    pub fn iinc(&mut self, vx: u8) {
+        self.i += self.regs[vx as usize] as u16;
+    }
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -178,6 +214,16 @@ pub enum Opcode {
     DRW(u8, u8, u8),
     SKP(u8),
     SKNP(u8),
+    // F
+    KEYSET(u8),
+    DTSET(u8),
+    DTGET(u8),
+    STSET(u8),
+    IINC(u8),
+    IDIG(u8),
+    BCD(u8),
+    REGSSTORE(u8),
+    REGLOAD(u8),
 }
 
 impl Opcode {
@@ -242,6 +288,24 @@ impl Opcode {
             Some(Opcode::SKP((op >> 8 & 0x0F) as u8))
         } else if op & 0xF0FF == 0xE0A1 {
             Some(Opcode::SKNP((op >> 8 & 0x0F) as u8))
+        } else if op & 0xF0FF == 0xF00A {
+            Some(Opcode::KEYSET((op >> 8 & 0x0F) as u8))
+        } else if op & 0xF0FF == 0xF015 {
+            Some(Opcode::DTSET((op >> 8 & 0x0F) as u8))
+        } else if op & 0xF0FF == 0xF007 {
+            Some(Opcode::DTGET((op >> 8 & 0x0F) as u8))
+        } else if op & 0xF0FF == 0xF018 {
+            Some(Opcode::STSET((op >> 8 & 0x0F) as u8))
+        } else if op & 0xF0FF == 0xF01E {
+            Some(Opcode::IINC((op >> 8 & 0x0F) as u8))
+        } else if op & 0xF0FF == 0xF029 {
+            Some(Opcode::IDIG((op >> 8 & 0x0F) as u8))
+        } else if op & 0xF0FF == 0xF033 {
+            Some(Opcode::BCD((op >> 8 & 0x0F) as u8))
+        } else if op & 0xF0FF == 0xF055 {
+            Some(Opcode::REGSSTORE((op >> 8 & 0x0F) as u8))
+        } else if op & 0xF0FF == 0xF065 {
+            Some(Opcode::REGLOAD((op >> 8 & 0x0F) as u8))
         } else {
             None
         }
@@ -274,6 +338,16 @@ impl Opcode {
             Opcode::DRW(vx, vy, n) => 0xD000 | (*vx as u16) << 8 | (*vy as u16) << 4 | (*n as u16),
             Opcode::SKP(a) => 0xE09E | (*a as u16) << 8,
             Opcode::SKNP(a) => 0xE0A1 | (*a as u16) << 8,
+
+            Opcode::KEYSET(a) => 0xF00A | (*a as u16) << 8,
+            Opcode::DTSET(a) => 0xF015 | (*a as u16) << 8,
+            Opcode::DTGET(a) => 0xF007 | (*a as u16) << 8,
+            Opcode::STSET(a) => 0xF018 | (*a as u16) << 8,
+            Opcode::IINC(a) => 0xF01E | (*a as u16) << 8,
+            Opcode::IDIG(a) => 0xF029 | (*a as u16) << 8,
+            Opcode::BCD(a) => 0xF033 | (*a as u16) << 8,
+            Opcode::REGSSTORE(a) => 0xF055 | (*a as u16) << 8,
+            Opcode::REGLOAD(a) => 0xF065 | (*a as u16) << 8,
         };
         res
     }
