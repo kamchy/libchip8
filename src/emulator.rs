@@ -79,6 +79,18 @@ impl Emulator {
             self.exec(op);
         }
     }
+
+    pub fn key_pressed(&mut self, oldk: Option<usize>, k: usize) {
+        if let Some(oldidx) = oldk {
+            if oldidx != k {
+                self.kbd.switch(oldidx);
+                self.kbd.switch(k);
+            }
+        } else {
+            self.kbd.switch(k);
+        }
+    }
+
     fn exec(&mut self, op: Opcode) {
         match op {
             Opcode::CLS => {
