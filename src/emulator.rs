@@ -221,7 +221,7 @@ impl Emulator {
     }
 
     fn split_val(v: u8) -> [u8; 3] {
-        [v / 100, v / 10, v % 10]
+        [v / 100, (v / 10) % 10, v % 10]
     }
 
     fn bcd(&mut self, vx: u8) {
@@ -320,5 +320,47 @@ mod loadingtest {
         assert_eq!(0, e.cpu.i);
         assert_eq!(true, e.scr.get(1, 2), "checking scr(1,2) is true");
         assert_eq!(e.cpu.pc, 0x200 + 6);
+    }
+
+    #[test]
+    fn split_test() {
+        match Emulator::split_val(145) {
+            [s, d, j] => {
+                assert_eq!(1, s);
+                assert_eq!(4, d);
+                assert_eq!(5, j);
+            }
+        }
+    }
+
+    #[test]
+    fn regsstore_test() {
+        let mut e = Emulator::new();
+        for i in 0..16 {
+            e.cpu.regs[i as usize] = i;
+        }
+
+        e.regsstore(5);
+        assert_eq!(
+            Some(
+                &[0u8, 1u8, 2u8, 3u8, 4u8, 5u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,]
+                    [..]
+            ),
+            e.mem.get(0..16)
+        );
+    }
+
+    #[test]
+    fn regload_test() {
+        let mut e = Emulator::new();
+        e.store_font();
+        e.regsload(6);
+        assert_eq!(
+            &[
+                0xF0, 0x90, 0x90, 0x90, 0xF0, 0x20, 0x60, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
+                0u8,
+            ][..],
+            e.cpu.regs
+        );
     }
 }
