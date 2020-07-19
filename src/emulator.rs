@@ -67,7 +67,7 @@ impl Emulator {
 
     /// Fetches next instruction (Opcode enum) from location
     /// pointed to by cpu pc register
-    fn fetch(&mut self) -> Option<Opcode> {
+    pub fn fetch(&mut self) -> Option<Opcode> {
         let instr = self.load_instr(self.cpu.pc);
         let op = Opcode::from(instr);
         self.cpu.instr = op;
@@ -91,7 +91,7 @@ impl Emulator {
         }
     }
 
-    fn exec(&mut self, op: Opcode) {
+    pub fn exec(&mut self, op: Opcode) {
         match op {
             Opcode::CLS => {
                 self.scr.clear();
@@ -362,5 +362,15 @@ mod loadingtest {
             ][..],
             e.cpu.regs
         );
+    }
+
+    #[test]
+    fn add_6ff_test() {
+        let mut e = Emulator::new();
+        e.cpu.regs[6] = 0x002B;
+        e.store_instr(&[0x76FF]);
+        e.run();
+        assert_eq!(0x002A, e.cpu.regs[6]);
+        assert_eq!(e.cpu.i, 0);
     }
 }

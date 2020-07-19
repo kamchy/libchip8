@@ -101,7 +101,8 @@ impl CPU {
     }
 
     pub fn add(&mut self, vx: u8, byte: u8) {
-        self.regs[vx as usize] += byte;
+        let sum = self.regs[vx as usize].wrapping_add(byte);
+        self.regs[vx as usize] = sum;
     }
 
     pub fn or(&mut self, vx: u8, vy: u8) {
@@ -409,6 +410,12 @@ mod test {
     fn add_test() {
         assert_eq!(Opcode::from(0x7DA0), Some(Opcode::ADD(0xD, 0xA0)));
         assert_eq!(0x7DA0, Opcode::ADD(0xD, 0xA0).to_instr());
+    }
+
+    #[test]
+    fn add_76ff_test() {
+        assert_eq!(Opcode::from(0x76FF), Some(Opcode::ADD(0x6, 0xFF)));
+        assert_eq!(0x76FF, Opcode::ADD(0x6, 0xFF).to_instr());
     }
 
     #[test]
