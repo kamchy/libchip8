@@ -19,11 +19,11 @@ impl Screen {
     /// Switches state of a value at x, y coords,
     /// i.e. xor-draws a pixel at [x, y] location
     /// Returns true if collision was detected
-    pub fn switch(&mut self, x: usize, y: usize) -> bool {
+    pub fn xor(&mut self, x: usize, y: usize, v: bool) -> bool {
         let x = x % COLS;
         let y = y % ROWS;
         let was_pixel = self.pixels[x][y];
-        self.pixels[x][y] = !was_pixel;
+        self.pixels[x][y] = was_pixel ^ v;
         was_pixel && !self.pixels[x][y]
     }
 
@@ -54,7 +54,7 @@ mod tests {
     #[test]
     fn setget_no_xor_test() {
         let mut a = Screen::new();
-        let of = a.switch(10, 12);
+        let of = a.xor(10, 12, true);
         assert_eq!(true, a.get(10, 12));
         assert_eq!(false, of);
     }
@@ -62,9 +62,21 @@ mod tests {
     #[test]
     fn setget_xor_test() {
         let mut a = Screen::new();
-        let of = a.switch(10, 12);
-        let of = of | a.switch(10, 12);
+        let of = a.xor(10, 12, true);
+        let of = of | a.xor(10, 12, true);
         assert_eq!(false, a.get(10, 12));
         assert_eq!(true, of);
+    }
+    #[test]
+    fn display_test() {
+        let mut d = Screen::new();
+        d.xor(2, 2, true);
+        d.xor(4, 4, true);
+        d.xor(4, 4, true);
+        d.xor(100, 100, true);
+
+        assert_eq!(d.get(2, 2), true);
+        assert_eq!(d.get(36, 4), true);
+        assert_eq!(d.get(4, 4), false);
     }
 }

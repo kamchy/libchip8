@@ -258,12 +258,12 @@ impl Emulator {
             let memloc = self.cpu.i + line_num as u16;
             let byte = self.mem.load(memloc);
             for bit in 0..8 {
-                if byte & (1 << (7 - bit)) != 0 {
-                    collision = collision
-                        | self
-                            .scr
-                            .switch((vx + bit) as usize, (vy + line_num) as usize);
-                }
+                collision = collision
+                    | self.scr.xor(
+                        (vx + bit) as usize,
+                        (vy + line_num) as usize,
+                        byte.rotate_left(bit as u32 + 1) & 1 == 1,
+                    );
             }
         }
 

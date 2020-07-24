@@ -61,19 +61,6 @@ mod tests {
     }
 
     #[test]
-    fn display_test() {
-        let mut d = display::Screen::new();
-        d.switch(2, 2);
-        d.switch(4, 4);
-        d.switch(4, 4);
-        d.switch(100, 100);
-
-        assert_eq!(d.get(2, 2), true);
-        assert_eq!(d.get(36, 4), true);
-        assert_eq!(d.get(4, 4), false);
-    }
-
-    #[test]
     fn exec_test() {
         let mut e = emulator::Emulator::new();
         e.mem.store_font(0);
