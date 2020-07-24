@@ -171,8 +171,8 @@ impl Emulator {
                 self.draw(vx, vy, n);
                 self.cpu.inc_pc();
             }
-            Opcode::SKP(vx) => self.cpu.skip_if(self.kbd.get(vx as usize)),
-            Opcode::SKNP(vx) => self.cpu.skip_if(!self.kbd.get(vx as usize)),
+            Opcode::SKP(vx) => self.cpu.skip_if(self.keyget(vx)),
+            Opcode::SKNP(vx) => self.cpu.skip_if(!self.keyget(vx)),
             Opcode::KEYSET(vx) => {
                 self.keyset(vx);
                 self.cpu.inc_pc();
@@ -244,10 +244,18 @@ impl Emulator {
         self.cpu.i = self.mem.addr_of_font(self.cpu.regs[vx]);
     }
 
+    /// Sets contents ov vx register to index of pressed key (if any is pressed;
+    /// otherwise does nothing)
     fn keyset(&mut self, vx: usize) {
         if let Some(idx) = self.kbd.down_key() {
             self.cpu.regs[vx] = idx as u8;
         }
+    }
+
+    /// Returns if key given in vx register is pressed
+    fn keyget(&self, vx: usize) -> bool {
+        let idx = self.cpu.regs[vx] as usize;
+        self.kbd.get(idx)
     }
 
     fn draw(&mut self, vx: usize, vy: usize, n: u8) {
