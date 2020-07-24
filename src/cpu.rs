@@ -1,7 +1,12 @@
+/// Address in chip-8 memory  (4096 B, byte-addressable)
+/// - used by pc, i, sp and stack etc.
 pub type Addr = u16;
+///
 pub type Instr = u16;
+/// Type of value stored in chip-8 register (u8)
 pub type Reg = u8;
-pub type Regs = [Reg; 16];
+/// Number of cpu registers
+const REGS_COUNT: usize = 0x10;
 
 #[derive(Default, PartialEq, Debug)]
 pub struct CPU {
@@ -10,7 +15,7 @@ pub struct CPU {
     /// I register stroring address for sprites
     pub i: Addr,
     /// 16 registers
-    pub regs: Regs,
+    pub regs: [Reg; REGS_COUNT],
     /// stack pointer
     pub sp: Addr,
     /// stack of return addresses for subroutines
@@ -27,7 +32,7 @@ impl CPU {
     pub fn from(
         pc: Addr,
         i: Addr,
-        regs: Regs,
+        regs: [Reg; REGS_COUNT],
         sp: Addr,
         instr: Option<Opcode>,
         dt: Reg,
@@ -88,63 +93,63 @@ impl CPU {
         self.skip_if(self.regs[vx] == self.regs[vy]);
     }
 
-    pub fn skip_neq_reg(&mut self, vx: u8, vy: u8) {
-        self.skip_if(self.regs[vx as usize] != self.regs[vy as usize]);
+    pub fn skip_neq_reg(&mut self, vx: usize, vy: usize) {
+        self.skip_if(self.regs[vx] != self.regs[vy]);
     }
 
-    pub fn load(&mut self, vx: u8, byte: u8) {
-        self.regs[vx as usize] = byte;
+    pub fn load(&mut self, vx: usize, byte: u8) {
+        self.regs[vx] = byte;
     }
 
-    pub fn load_r(&mut self, vx: u8, vy: u8) {
-        self.regs[vx as usize] = self.regs[vy as usize];
+    pub fn load_r(&mut self, vx: usize, vy: usize) {
+        self.regs[vx] = self.regs[vy];
     }
 
-    pub fn add(&mut self, vx: u8, byte: u8) {
-        let sum = self.regs[vx as usize].wrapping_add(byte);
-        self.regs[vx as usize] = sum;
+    pub fn add(&mut self, vx: usize, byte: u8) {
+        let sum = self.regs[vx].wrapping_add(byte);
+        self.regs[vx] = sum;
     }
 
-    pub fn or(&mut self, vx: u8, vy: u8) {
-        self.regs[vx as usize] |= self.regs[vy as usize];
+    pub fn or(&mut self, vx: usize, vy: usize) {
+        self.regs[vx] |= self.regs[vy];
     }
 
-    pub fn and(&mut self, vx: u8, vy: u8) {
-        self.regs[vx as usize] &= self.regs[vy as usize];
+    pub fn and(&mut self, vx: usize, vy: usize) {
+        self.regs[vx] &= self.regs[vy];
     }
 
-    pub fn xor(&mut self, vx: u8, vy: u8) {
-        self.regs[vx as usize] ^= self.regs[vy as usize];
+    pub fn xor(&mut self, vx: usize, vy: usize) {
+        self.regs[vx] ^= self.regs[vy];
     }
 
-    pub fn addr(&mut self, vx: u8, vy: u8) {
-        let (sum, overflow) = self.regs[vx as usize].overflowing_add(self.regs[vy as usize]);
+    pub fn addr(&mut self, vx: usize, vy: usize) {
+        let (sum, overflow) = self.regs[vx].overflowing_add(self.regs[vy]);
         self.regs[0xF] = if overflow { 1 } else { 0 };
-        self.regs[vx as usize] = sum;
+        self.regs[vx] = sum;
     }
 
-    pub fn subr(&mut self, vx: u8, vy: u8) {
-        let (diff, overflow) = self.regs[vx as usize].overflowing_sub(self.regs[vy as usize]);
+    pub fn subr(&mut self, vx: usize, vy: usize) {
+        let (diff, overflow) = self.regs[vx].overflowing_sub(self.regs[vy]);
         self.regs[0xF] = if !overflow { 1 } else { 0 };
-        self.regs[vx as usize] = diff;
+        self.regs[vx] = diff;
     }
 
-    pub fn shr(&mut self, vx: u8) {
-        let (res, overflow) = self.regs[vx as usize].overflowing_shr(1);
+    pub fn shr(&mut self, vx: usize) {
+        let (res, overflow) = self.regs[vx].overflowing_shr(1);
         self.regs[0xF] = if overflow { 1 } else { 0 };
-        self.regs[vx as usize] = res;
+        self.regs[vx] = res;
     }
 
-    pub fn subrn(&mut self, vx: u8, vy: u8) {
-        let (diff, overflow) = self.regs[vy as usize].overflowing_sub(self.regs[vx as usize]);
+    pub fn subrn(&mut self, vx: usize, vy: usize) {
+        let (diff, overflow) = self.regs[vy].overflowing_sub(self.regs[vx]);
         self.regs[0xF] = if !overflow { 1 } else { 0 };
-        self.regs[vx as usize] = diff;
+        self.regs[vx] = diff;
     }
 
-    pub fn shl(&mut self, vx: u8) {
-        let (res, overflow) = self.regs[vx as usize].overflowing_shl(1);
+    pub fn shl(&mut self, vx: usize) {
+        let (res, overflow) = self.regs[vx].overflowing_shl(1);
         self.regs[0xF] = if overflow { 1 } else { 0 };
-        self.regs[vx as usize] = res;
+        self.regs[vx] = res;
     }
     pub fn ldi(&mut self, addr: Addr) {
         self.i = addr;
@@ -154,24 +159,24 @@ impl CPU {
         self.pc = self.regs[0] as u16 + addr;
     }
 
-    pub fn rnd(&mut self, vx: u8, byte: u8) {
-        self.regs[vx as usize] = rand::random::<u8>() & byte;
+    pub fn rnd(&mut self, vx: usize, byte: u8) {
+        self.regs[vx] = rand::random::<u8>() & byte;
     }
 
-    pub fn dtset(&mut self, vx: u8) {
-        self.dt = self.regs[vx as usize];
+    pub fn dtset(&mut self, vx: usize) {
+        self.dt = self.regs[vx];
     }
 
-    pub fn dtget(&mut self, vx: u8) {
-        self.regs[vx as usize] = self.dt;
+    pub fn dtget(&mut self, vx: usize) {
+        self.regs[vx] = self.dt;
     }
 
-    pub fn stset(&mut self, vx: u8) {
-        self.st = self.regs[vx as usize];
+    pub fn stset(&mut self, vx: usize) {
+        self.st = self.regs[vx];
     }
 
-    pub fn iinc(&mut self, vx: u8) {
-        self.i += self.regs[vx as usize] as u16;
+    pub fn iinc(&mut self, vx: usize) {
+        self.i += self.regs[vx] as u16;
     }
 }
 
@@ -187,168 +192,190 @@ pub enum Opcode {
     CALL(Addr),
     /// skip next instr if register with given index
     /// equals given value
-    SE(u8, Reg),
+    SE(usize, Reg),
     /// skips if not equals
     SNE(usize, Reg),
     /// skip next instr if contents of registers
     /// with given indices are equal
     SER(usize, usize),
     /// sets vx=kk
-    LD(u8, Reg),
+    LD(usize, Reg),
     /// sets Vx = Vx + kk
-    ADD(u8, Reg),
+    ADD(usize, Reg),
     /// sets Vx = Vy
-    LDR(u8, u8),
+    LDR(usize, usize),
 
-    OR(u8, u8),
-    AND(u8, u8),
-    XOR(u8, u8),
-    ADDR(u8, u8),
-    SUBR(u8, u8),
-    SHR(u8),
-    SUBRN(u8, u8),
-    SHL(u8),
-    SNER(u8, u8),
+    OR(usize, usize),
+    AND(usize, usize),
+    XOR(usize, usize),
+    ADDR(usize, usize),
+    SUBR(usize, usize),
+    /// shift right contents of given register
+    SHR(usize, usize),
+    SUBRN(usize, usize),
+    SHL(usize, usize),
+    SNER(usize, usize),
     LDI(u16),
     JPOFF(u16),
-    RND(u8, u8),
-    DRW(u8, u8, u8),
-    SKP(u8),
-    SKNP(u8),
+    RND(usize, u8),
+    DRW(usize, usize, u8),
+    SKP(usize),
+    SKNP(usize),
     // F
-    KEYSET(u8),
-    DTSET(u8),
-    DTGET(u8),
-    STSET(u8),
-    IINC(u8),
-    IDIG(u8),
-    BCD(u8),
-    REGSSTORE(u8),
-    REGLOAD(u8),
+    KEYSET(usize),
+    DTSET(usize),
+    DTGET(usize),
+    STSET(usize),
+    IINC(usize),
+    IDIG(usize),
+    BCD(usize),
+    REGSSTORE(usize),
+    REGLOAD(usize),
 }
 
 impl Opcode {
-    pub fn from(op: u16) -> Option<Opcode> {
-        if op & 0xF000 == 0x1000 {
-            Some(Opcode::JP(op & 0x0FFF))
-        } else if op & 0xF000 == 0x2000 {
-            Some(Opcode::CALL(op & 0x0FFF))
-        } else if op == 0x00E0 {
-            Some(Opcode::CLS)
-        } else if op == 0x00EE {
-            Some(Opcode::RET)
-        } else if op & 0xF000 == 0x3000 {
-            Some(Opcode::SE(((op & 0x0F00) >> 8) as u8, (op & 0x00FF) as u8))
-        } else if op & 0xF000 == 0x4000 {
-            Some(Opcode::SNE(
-                ((op & 0x0F00) >> 8).into(),
-                (op & 0x00FF) as u8,
-            ))
-        } else if op & 0xF00F == 0x5000 {
-            Some(Opcode::SER(
-                ((op & 0x0F00) >> 8).into(),
-                ((op & 0x00F0) >> 4).into(),
-            ))
-        } else if op & 0xF000 == 0x6000 {
-            Some(Opcode::LD((op >> 8 & 0xF) as u8, (op & 0xFF) as u8))
-        } else if op & 0xF000 == 0x7000 {
-            Some(Opcode::ADD((op >> 8 & 0xF) as u8, (op & 0xFF) as u8))
-        } else if op & 0xF00F == 0x8000 {
-            Some(Opcode::LDR((op >> 8 & 0xF) as u8, (op >> 4 & 0xF) as u8))
-        } else if op & 0xF00F == 0x8001 {
-            Some(Opcode::OR((op >> 8 & 0xF) as u8, (op >> 4 & 0xF) as u8))
-        } else if op & 0xF00F == 0x8002 {
-            Some(Opcode::AND((op >> 8 & 0xF) as u8, (op >> 4 & 0xF) as u8))
-        } else if op & 0xF00F == 0x8003 {
-            Some(Opcode::XOR((op >> 8 & 0xF) as u8, (op >> 4 & 0xF) as u8))
-        } else if op & 0xF00F == 0x8004 {
-            Some(Opcode::ADDR((op >> 8 & 0xF) as u8, (op >> 4 & 0xF) as u8))
-        } else if op & 0xF00F == 0x8005 {
-            Some(Opcode::SUBR((op >> 8 & 0xF) as u8, (op >> 4 & 0xF) as u8))
-        } else if op & 0xF00F == 0x8006 {
-            Some(Opcode::SHR((op >> 8 & 0xF) as u8))
-        } else if op & 0xF00F == 0x8007 {
-            Some(Opcode::SUBRN((op >> 8 & 0xF) as u8, (op >> 4 & 0xF) as u8))
-        } else if op & 0xF00F == 0x800E {
-            Some(Opcode::SHL((op >> 8 & 0xF) as u8))
-        } else if op & 0xF00F == 0x9000 {
-            Some(Opcode::SNER((op >> 8 & 0xF) as u8, (op >> 4 & 0xF) as u8))
-        } else if op & 0xF000 == 0xA000 {
-            Some(Opcode::LDI(op & 0x0FFF))
-        } else if op & 0xF000 == 0xB000 {
-            Some(Opcode::JPOFF(op & 0x0FFF))
-        } else if op & 0xF000 == 0xC000 {
-            Some(Opcode::RND((op >> 8 & 0xF) as u8, (op >> 4 & 0xF) as u8))
-        } else if op & 0xF000 == 0xD000 {
-            Some(Opcode::DRW(
-                (op >> 8 & 0xF) as u8,
-                (op >> 4 & 0xF) as u8,
-                (op & 0xF) as u8,
-            ))
-        } else if op & 0xF0FF == 0xE09E {
-            Some(Opcode::SKP((op >> 8 & 0x0F) as u8))
-        } else if op & 0xF0FF == 0xE0A1 {
-            Some(Opcode::SKNP((op >> 8 & 0x0F) as u8))
-        } else if op & 0xF0FF == 0xF00A {
-            Some(Opcode::KEYSET((op >> 8 & 0x0F) as u8))
-        } else if op & 0xF0FF == 0xF015 {
-            Some(Opcode::DTSET((op >> 8 & 0x0F) as u8))
-        } else if op & 0xF0FF == 0xF007 {
-            Some(Opcode::DTGET((op >> 8 & 0x0F) as u8))
-        } else if op & 0xF0FF == 0xF018 {
-            Some(Opcode::STSET((op >> 8 & 0x0F) as u8))
-        } else if op & 0xF0FF == 0xF01E {
-            Some(Opcode::IINC((op >> 8 & 0x0F) as u8))
-        } else if op & 0xF0FF == 0xF029 {
-            Some(Opcode::IDIG((op >> 8 & 0x0F) as u8))
-        } else if op & 0xF0FF == 0xF033 {
-            Some(Opcode::BCD((op >> 8 & 0x0F) as u8))
-        } else if op & 0xF0FF == 0xF055 {
-            Some(Opcode::REGSSTORE((op >> 8 & 0x0F) as u8))
-        } else if op & 0xF0FF == 0xF065 {
-            Some(Opcode::REGLOAD((op >> 8 & 0x0F) as u8))
-        } else {
-            None
+    fn xyn(op: u16) -> (usize, usize, u8) {
+        (
+            (op >> 8 & 0xF) as usize,
+            (op >> 4 & 0xF) as usize,
+            (op & 0xF) as u8,
+        )
+    }
+
+    /// extracts three nibbles at the end (masks with 0x0FFF)
+    fn nnn(op: u16) -> u16 {
+        op & 0x0FFF
+    }
+
+    fn xkk(op: u16) -> (usize, u8) {
+        ((op >> 8 & 0xF) as usize, (op & 0x00FF) as u8)
+    }
+
+    fn xy(op: u16) -> (usize, usize) {
+        ((op >> 8 & 0xF) as usize, (op >> 4 & 0xF) as usize)
+    }
+
+    fn xs(op: u16) -> usize {
+        (op >> 8 & 0xF) as usize
+    }
+
+    pub fn from(op: Instr) -> Option<Opcode> {
+        let nnn = Opcode::nnn(op);
+        let (x, kk) = Opcode::xkk(op);
+        let (xm, ym) = Opcode::xy(op);
+        let (xn, yn, nn) = Opcode::xyn(op);
+        let xs = Opcode::xs(op);
+        match op & 0xF000 {
+            0x0000 => match op {
+                0x00E0 => Some(Opcode::CLS),
+                0x00EE => Some(Opcode::RET),
+                _ => None,
+            },
+            0x1000 => Some(Opcode::JP(nnn)),
+            0x2000 => Some(Opcode::CALL(nnn)),
+            0x3000 => Some(Opcode::SE(x, kk)),
+            0x4000 => Some(Opcode::SNE(x, kk)),
+            0x5000 => match op & 0xF {
+                0 => Some(Opcode::SER(xm, ym)),
+                _ => None,
+            },
+            0x6000 => Some(Opcode::LD(x, kk)),
+            0x7000 => Some(Opcode::ADD(x, kk)),
+            0x8000 => match op & 0xF {
+                0x0 => Some(Opcode::LDR(xm, ym)),
+                0x1 => Some(Opcode::OR(xm, ym)),
+                0x2 => Some(Opcode::AND(xm, ym)),
+                0x3 => Some(Opcode::XOR(xm, ym)),
+                0x4 => Some(Opcode::ADDR(xm, ym)),
+                0x5 => Some(Opcode::SUBR(xm, ym)),
+                0x6 => Some(Opcode::SHR(xm, ym)),
+                0x7 => Some(Opcode::SUBRN(xm, ym)),
+                0xE => Some(Opcode::SHL(xm, ym)),
+                _ => None,
+            },
+            0x9000 => Some(Opcode::SNER(xm, ym)),
+            0xA000 => Some(Opcode::LDI(nnn)),
+            0xB000 => Some(Opcode::JPOFF(nnn)),
+            0xC000 => Some(Opcode::RND(x, kk)),
+            0xD000 => Some(Opcode::DRW(xn, yn, nn)),
+            0xE000 => match op & 0xFF {
+                0x9E => Some(Opcode::SKP(xs)),
+                0xA1 => Some(Opcode::SKNP(xs)),
+                _ => None,
+            },
+            0xF000 => match op & 0xFF {
+                0x07 => Some(Opcode::DTGET(xs)),
+                0x0A => Some(Opcode::KEYSET(xs)),
+                0x15 => Some(Opcode::DTSET(xs)),
+                0x18 => Some(Opcode::STSET(xs)),
+                0x1E => Some(Opcode::IINC(xs)),
+                0x29 => Some(Opcode::IDIG(xs)),
+                0x33 => Some(Opcode::BCD(xs)),
+                0x55 => Some(Opcode::REGSSTORE(xs)),
+                0x65 => Some(Opcode::REGLOAD(xs)),
+                _ => None,
+            },
+
+            _ => None,
         }
+    }
+
+    fn vx_byte(mask: u16, vx: &usize, byte: &u8) -> Instr {
+        mask | (*vx as u16) << 8 | *byte as u16
+    }
+
+    fn vx_vy(mask: u16, vx: &usize, vy: &usize) -> Instr {
+        mask | (*vx as u16) << 8 | (*vy as u16) << 4
+    }
+
+    fn innn(mask: u16, a: &u16) -> Instr {
+        mask | a
+    }
+
+    fn vx_vy_n(mask: u16, vx: &usize, vy: &usize, n: &u8) -> Instr {
+        mask | (*vx as u16) << 8 | (*vy as u16) << 4 | (*n as u16)
+    }
+
+    fn ibyte(mask: u16, vx: &usize) -> Instr {
+        mask | (*vx as u16) << 8
     }
 
     pub fn to_instr(&self) -> Instr {
         let res = match self {
             Opcode::CLS => 0x00E0,
             Opcode::RET => 0x00EE,
-            Opcode::JP(a) => 0x1000 | a,
-            Opcode::CALL(a) => 0x2000 | a,
-            Opcode::SE(vx, byte) => 0x3000 | (*vx as u16) << 8 | *byte as u16,
-            Opcode::SNE(vx, byte) => 0x4000 | (*vx as u16) << 8 | *byte as u16,
-            Opcode::SER(vx, vy) => 0x5000 | (*vx as u16) << 8 | (*vy as u16) << 4,
-            Opcode::LD(vx, byte) => 0x6000 | (*vx as u16) << 8 | *byte as u16,
-            Opcode::ADD(vx, byte) => 0x7000 | (*vx as u16) << 8 | *byte as u16,
-            Opcode::LDR(vx, vy) => 0x8000 | (*vx as u16) << 8 | (*vy as u16) << 4,
-            Opcode::OR(vx, vy) => 0x8001 | (*vx as u16) << 8 | (*vy as u16) << 4,
-            Opcode::AND(vx, vy) => 0x8002 | (*vx as u16) << 8 | (*vy as u16) << 4,
-            Opcode::XOR(vx, vy) => 0x8003 | (*vx as u16) << 8 | (*vy as u16) << 4,
-            Opcode::ADDR(vx, vy) => 0x8004 | (*vx as u16) << 8 | (*vy as u16) << 4,
-            Opcode::SUBR(vx, vy) => 0x8005 | (*vx as u16) << 8 | (*vy as u16) << 4,
-            Opcode::SHR(vx) => 0x8006 | (*vx as u16) << 8,
-            Opcode::SUBRN(vx, vy) => 0x8007 | (*vx as u16) << 8 | (*vy as u16) << 4,
-            Opcode::SHL(vx) => 0x800E | (*vx as u16) << 8,
-            Opcode::SNER(vx, vy) => 0x9000 | (*vx as u16) << 8 | (*vy as u16) << 4,
-            Opcode::LDI(a) => 0xA000 | a,
-            Opcode::JPOFF(a) => 0xB000 | a,
-            Opcode::RND(vx, vy) => 0xC000 | (*vx as u16) << 8 | (*vy as u16) << 4,
-            Opcode::DRW(vx, vy, n) => 0xD000 | (*vx as u16) << 8 | (*vy as u16) << 4 | (*n as u16),
-            Opcode::SKP(a) => 0xE09E | (*a as u16) << 8,
-            Opcode::SKNP(a) => 0xE0A1 | (*a as u16) << 8,
-
-            Opcode::KEYSET(a) => 0xF00A | (*a as u16) << 8,
-            Opcode::DTSET(a) => 0xF015 | (*a as u16) << 8,
-            Opcode::DTGET(a) => 0xF007 | (*a as u16) << 8,
-            Opcode::STSET(a) => 0xF018 | (*a as u16) << 8,
-            Opcode::IINC(a) => 0xF01E | (*a as u16) << 8,
-            Opcode::IDIG(a) => 0xF029 | (*a as u16) << 8,
-            Opcode::BCD(a) => 0xF033 | (*a as u16) << 8,
-            Opcode::REGSSTORE(a) => 0xF055 | (*a as u16) << 8,
-            Opcode::REGLOAD(a) => 0xF065 | (*a as u16) << 8,
+            Opcode::JP(a) => Opcode::innn(0x1000, a),
+            Opcode::CALL(a) => Opcode::innn(0x2000, a),
+            Opcode::SE(vx, byte) => Opcode::vx_byte(0x3000, vx, byte),
+            Opcode::SNE(vx, byte) => Opcode::vx_byte(0x4000, vx, byte),
+            Opcode::SER(vx, vy) => Opcode::vx_vy(0x5000, vx, vy),
+            Opcode::LD(vx, byte) => Opcode::vx_byte(0x6000, vx, byte),
+            Opcode::ADD(vx, byte) => Opcode::vx_byte(0x7000, vx, byte),
+            Opcode::LDR(vx, vy) => Opcode::vx_vy(0x8000, vx, vy),
+            Opcode::OR(vx, vy) => Opcode::vx_vy(0x8001, vx, vy),
+            Opcode::AND(vx, vy) => Opcode::vx_vy(0x8002, vx, vy),
+            Opcode::XOR(vx, vy) => Opcode::vx_vy(0x8003, vx, vy),
+            Opcode::ADDR(vx, vy) => Opcode::vx_vy(0x8004, vx, vy),
+            Opcode::SUBR(vx, vy) => Opcode::vx_vy(0x8005, vx, vy),
+            Opcode::SHR(vx, _) => Opcode::ibyte(0x8006, vx),
+            Opcode::SUBRN(vx, vy) => Opcode::vx_vy(0x8007, vx, vy),
+            Opcode::SHL(vx, _) => Opcode::ibyte(0x800E, vx),
+            Opcode::SNER(vx, vy) => Opcode::vx_vy(0x9000, vx, vy),
+            Opcode::LDI(a) => Opcode::innn(0xA000, a),
+            Opcode::JPOFF(a) => Opcode::innn(0xB000, a),
+            Opcode::RND(vx, byte) => Opcode::vx_byte(0xC000, vx, byte),
+            Opcode::DRW(vx, vy, n) => Opcode::vx_vy_n(0xD000, vx, vy, n),
+            Opcode::SKP(a) => Opcode::ibyte(0xE09E, a),
+            Opcode::SKNP(a) => Opcode::ibyte(0xE0A1, a),
+            Opcode::KEYSET(a) => Opcode::ibyte(0xF00A, a),
+            Opcode::DTSET(a) => Opcode::ibyte(0xF015, a),
+            Opcode::DTGET(a) => Opcode::ibyte(0xF007, a),
+            Opcode::STSET(a) => Opcode::ibyte(0xF018, a),
+            Opcode::IINC(a) => Opcode::ibyte(0xF01E, a),
+            Opcode::IDIG(a) => Opcode::ibyte(0xF029, a),
+            Opcode::BCD(a) => Opcode::ibyte(0xF033, a),
+            Opcode::REGSSTORE(a) => Opcode::ibyte(0xF055, a),
+            Opcode::REGLOAD(a) => Opcode::ibyte(0xF065, a),
         };
         res
     }
@@ -456,8 +483,8 @@ mod test {
 
     #[test]
     fn shr_test() {
-        assert_eq!(Opcode::from(0x8DA6), Some(Opcode::SHR(0xD)));
-        assert_eq!(0x8D06, Opcode::SHR(0xD).to_instr());
+        assert_eq!(Opcode::from(0x8DA6), Some(Opcode::SHR(0xD, 0xA)));
+        assert_eq!(0x8D06, Opcode::SHR(0xD, 0xA).to_instr());
     }
 
     #[test]
@@ -468,8 +495,8 @@ mod test {
 
     #[test]
     fn shl_test() {
-        assert_eq!(Opcode::from(0x8DAE), Some(Opcode::SHL(0xD)));
-        assert_eq!(0x8D0E, Opcode::SHL(0xD).to_instr());
+        assert_eq!(Opcode::from(0x8DAE), Some(Opcode::SHL(0xD, 0xA)));
+        assert_eq!(0x8D0E, Opcode::SHL(0xD, 0xA).to_instr());
     }
 
     #[test]

@@ -1,6 +1,7 @@
+const KEY_COUNT: usize = 0x10;
 #[derive(Debug, Default)]
 pub struct Keyboard {
-    pub states: [bool; 16],
+    pub states: [bool; KEY_COUNT],
 }
 
 impl Keyboard {
@@ -17,12 +18,7 @@ impl Keyboard {
     }
 
     pub fn down_key(&self) -> Option<usize> {
-        for i in 0..16 {
-            if self.states[i as usize] {
-                return Some(i as usize);
-            }
-        }
-        return None;
+        self.states.iter().position(|&i| i == true)
     }
 }
 

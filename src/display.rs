@@ -16,29 +16,21 @@ impl Screen {
         }
     }
 
-    fn wrpx(x: u8) -> usize {
-        x as usize % COLS
-    }
-
-    fn wrpy(y: u8) -> usize {
-        y as usize % ROWS
-    }
-
     /// Switches state of a value at x, y coords,
     /// i.e. xor-draws a pixel at [x, y] location
     /// Returns true if collision was detected
-    pub fn switch(&mut self, x: u8, y: u8) -> bool {
-        let xi = Self::wrpx(x);
-        let yi = Self::wrpy(y);
-        let was_pixel = self.pixels[xi][yi];
-        self.pixels[xi][yi] = !was_pixel;
-        was_pixel && !self.pixels[xi][yi]
+    pub fn switch(&mut self, x: usize, y: usize) -> bool {
+        let x = x % COLS;
+        let y = y % ROWS;
+        let was_pixel = self.pixels[x][y];
+        self.pixels[x][y] = !was_pixel;
+        was_pixel && !self.pixels[x][y]
     }
 
-    pub fn get(&self, x: u8, y: u8) -> bool {
-        let xi = Self::wrpx(x);
-        let yi = Self::wrpy(y);
-        self.pixels[xi][yi]
+    pub fn get(&self, x: usize, y: usize) -> bool {
+        let x = x % COLS;
+        let y = y % ROWS;
+        self.pixels[x][y]
     }
 
     pub fn clear(&mut self) {

@@ -90,6 +90,11 @@ impl Emulator {
             self.kbd.switch(k);
         }
     }
+    pub fn key_released(&mut self) {
+        if let Some(key) = self.kbd.down_key() {
+            self.kbd.switch(key);
+        }
+    }
 
     pub fn exec(&mut self, op: Opcode) {
         match op {
@@ -103,7 +108,7 @@ impl Emulator {
             }
             Opcode::JP(addr) => self.cpu.pc = addr,
             Opcode::CALL(addr) => self.cpu.call(addr),
-            Opcode::SE(vx, byte) => self.cpu.skip_eq(vx.into(), byte),
+            Opcode::SE(vx, byte) => self.cpu.skip_eq(vx, byte),
             Opcode::SNE(vx, byte) => self.cpu.skip_neq(vx, byte),
             Opcode::SER(vx, vy) => self.cpu.skip_eq_reg(vx, vy),
             Opcode::LD(vx, byte) => {
@@ -138,7 +143,7 @@ impl Emulator {
                 self.cpu.subr(vx, vy);
                 self.cpu.inc_pc();
             }
-            Opcode::SHR(vx) => {
+            Opcode::SHR(vx, _) => {
                 self.cpu.shr(vx);
                 self.cpu.inc_pc();
             }
@@ -148,7 +153,7 @@ impl Emulator {
                 self.cpu.inc_pc();
             }
 
-            Opcode::SHL(vx) => {
+            Opcode::SHL(vx, _) => {
                 self.cpu.shl(vx);
                 self.cpu.inc_pc();
             }
@@ -207,14 +212,14 @@ impl Emulator {
         }
     }
 
-    fn regsstore(&mut self, vx: u8) {
-        self.mem
-            .store_arr(self.cpu.i, &self.cpu.regs[0..=vx as usize]);
+    fn regsstore(&mut self, vx: usize) {
+        self.mem.store_arr(self.cpu.i, &self.cpu.regs[0..=vx]);
     }
 
-    fn regsload(&mut self, vx: u8) {
+    fn regsload(&mut self, vx: usize) {
         for i_offset in 0..=vx {
-            if let Some(val) = self.mem.get((self.cpu.i + i_offset as u16) as usize) {
+            let memidx: usize = self.cpu.i as usize + i_offset;
+            if let Some(val) = self.mem.get(memidx) {
                 self.cpu.regs[i_offset as usize] = *val;
             }
         }
@@ -224,8 +229,8 @@ impl Emulator {
         [v / 100, (v / 10) % 10, v % 10]
     }
 
-    fn bcd(&mut self, vx: u8) {
-        let val = self.cpu.regs[vx as usize];
+    fn bcd(&mut self, vx: usize) {
+        let val = self.cpu.regs[vx];
         match Emulator::split_val(val) {
             [h, t, d] => {
                 self.mem.store(self.cpu.i, h);
@@ -235,26 +240,29 @@ impl Emulator {
         }
     }
 
-    fn idig(&mut self, vx: u8) {
-        self.cpu.i = self.mem.addr_of_font(self.cpu.regs[vx as usize]);
+    fn idig(&mut self, vx: usize) {
+        self.cpu.i = self.mem.addr_of_font(self.cpu.regs[vx]);
     }
 
-    fn keyset(&mut self, vx: u8) {
+    fn keyset(&mut self, vx: usize) {
         if let Some(idx) = self.kbd.down_key() {
-            self.cpu.regs[vx as usize] = idx as u8;
+            self.cpu.regs[vx] = idx as u8;
         }
     }
 
-    fn draw(&mut self, vx: u8, vy: u8, n: u8) {
+    fn draw(&mut self, vx: usize, vy: usize, n: u8) {
         let mut collision = false;
-        let vx = self.cpu.regs[vx as usize];
-        let vy = self.cpu.regs[vy as usize];
+        let vx = self.cpu.regs[vx];
+        let vy = self.cpu.regs[vy];
         for line_num in 0..n {
             let memloc = self.cpu.i + line_num as u16;
             let byte = self.mem.load(memloc);
             for bit in 0..8 {
                 if byte & (1 << (7 - bit)) != 0 {
-                    collision = collision | self.scr.switch(vx + bit, vy + line_num);
+                    collision = collision
+                        | self
+                            .scr
+                            .switch((vx + bit) as usize, (vy + line_num) as usize);
                 }
             }
         }
@@ -271,6 +279,16 @@ impl Emulator {
                 break;
             }
         }
+    }
+
+    pub fn tick(&mut self) -> (u8, u8) {
+        if let Some(v) = self.cpu.dt.checked_sub(1) {
+            self.cpu.dt = v;
+        }
+        if let Some(v) = self.cpu.st.checked_sub(1) {
+            self.cpu.st = v;
+        }
+        (self.cpu.dt, self.cpu.st)
     }
 }
 
