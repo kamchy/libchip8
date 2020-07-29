@@ -10,7 +10,6 @@ pub mod mem;
 /// TODO should be moved to relevant modules
 mod tests {
     use super::cpu;
-    use super::display;
     use super::emulator;
     use super::mem;
 
