@@ -16,27 +16,18 @@ pub struct Emulator {
 }
 
 impl Emulator {
-    fn new_simple_emulator() -> Emulator {
+    fn with_screen(scr: Box<dyn display::Scr>) -> Emulator {
         Emulator {
             cpu: cpu::CPU::new(),
             mem: mem::Mem::new(),
-            scr: Box::new(display::Screen::new()),
+            scr,
             kbd: input::Keyboard::new(),
         }
     }
-    fn new_binary_emulator() -> Emulator {
-        Emulator {
-            cpu: cpu::CPU::new(),
-            mem: mem::Mem::new(),
-            scr: Box::new(display::BitScreen::new()),
-            kbd: input::Keyboard::new(),
-        }
-    }
-
     /// Creates emulator with empty memory.
     pub fn new() -> Self {
         //Emulator::new_simple_emulator()
-        Emulator::new_binary_emulator()
+        Emulator::with_screen(Box::new(display::BitScreen::new()))
     }
 
     pub fn start_addr(&self) -> Addr {
