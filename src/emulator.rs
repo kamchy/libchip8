@@ -6,24 +6,37 @@ use crate::input;
 use crate::mem;
 
 use cpu::Addr;
-///
+
 /// Emulator capable of running chip-8 binaries
 pub struct Emulator {
     pub cpu: cpu::CPU,
     pub mem: mem::Mem,
-    pub scr: display::Screen,
+    pub scr: Box<dyn display::Scr>,
     pub kbd: input::Keyboard,
 }
 
 impl Emulator {
-    /// Creates emulator with empty memory.
-    pub fn new() -> Self {
+    fn new_simple_emulator() -> Emulator {
         Emulator {
             cpu: cpu::CPU::new(),
             mem: mem::Mem::new(),
-            scr: display::Screen::new(),
+            scr: Box::new(display::Screen::new()),
             kbd: input::Keyboard::new(),
         }
+    }
+    fn new_binary_emulator() -> Emulator {
+        Emulator {
+            cpu: cpu::CPU::new(),
+            mem: mem::Mem::new(),
+            scr: Box::new(display::BitScreen::new()),
+            kbd: input::Keyboard::new(),
+        }
+    }
+
+    /// Creates emulator with empty memory.
+    pub fn new() -> Self {
+        //Emulator::new_simple_emulator()
+        Emulator::new_binary_emulator()
     }
 
     pub fn start_addr(&self) -> Addr {
@@ -259,23 +272,18 @@ impl Emulator {
     }
 
     fn draw(&mut self, vx: usize, vy: usize, n: u8) {
-        let mut collision = false;
-        let vx = self.cpu.regs[vx];
-        let vy = self.cpu.regs[vy];
-        for line_num in 0..n {
-            let memloc = self.cpu.i + line_num as u16;
-            let byte = self.mem.load(memloc);
-            for bit in 0..8 {
-                collision = collision
-                    | self.scr.xor(
-                        (vx + bit) as usize,
-                        (vy + line_num) as usize,
-                        byte.rotate_left(bit as u32 + 1) & 1 == 1,
-                    );
+        let x: usize = self.cpu.regs[vx] as usize;
+        let y: usize = self.cpu.regs[vy] as usize;
+        let bytes = self
+            .mem
+            .get(self.cpu.i as usize..(self.cpu.i.wrapping_add(n as u16) as usize));
+        if let Some(bytes) = bytes {
+            self.cpu.regs[0xF] = if self.scr.xor_bytes(x, y, bytes) {
+                1
+            } else {
+                0
             }
         }
-
-        self.cpu.regs[0xF] = if collision { 1 } else { 0 };
     }
 
     pub fn run(&mut self) {
